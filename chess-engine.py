@@ -165,6 +165,35 @@ def evaluate_black_targeted_squares(board):
 
     return len(black_targeted)
 
+def evaluate_forks(board):
+    piece_values = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3.5,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
+        chess.KING: 0  
+    }
+
+    fork_score = 0
+
+    for square in chess.SQUARES:
+        piece = board.piece_at(square)
+        if piece and piece.color == chess.BLACK:  
+            attacked_squares = board.attacks(square)
+            targeted_pieces = []
+
+            for attacked_square in attacked_squares:
+                target = board.piece_at(attacked_square)
+                if target and target.color == chess.WHITE:  
+                    targeted_pieces.append(target)
+
+            if len(targeted_pieces) >= 2:  
+                fork_value = sum(piece_values[target.piece_type] for target in targeted_pieces)
+                fork_score += fork_value
+
+    return fork_score
+
 
 def piece_values_checker(board):
     piece_values = {
@@ -262,7 +291,7 @@ def play_best_ai_move(board):
 
     for move in board.legal_moves:
         board.push(move)
-        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)+evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)
+        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)+evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)+0.2*evaluate_forks(board)
         board.pop()
 
         if score < best_score:
