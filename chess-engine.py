@@ -176,7 +176,20 @@ def piece_values_checker(board):
             else:
                 score -= value
     return score
-    
+
+def center_control(board):
+    center_squares = {chess.D4, chess.D5, chess.E4, chess.E5}
+    center_control_point = 10  
+    score = 0
+    for square in center_squares:
+        piece = board.piece_at(square)
+        if piece:
+            if piece.color == chess.WHITE:
+                score += center_control_point
+            else:
+                score -= center_control_point
+    return score
+
 def play_best_ai_move(board):
     
     best_move = None
@@ -184,7 +197,7 @@ def play_best_ai_move(board):
 
     for move in board.legal_moves:
         board.push(move)
-        score = piece_values_checker(board)+piece_position_value(board)
+        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
         board.pop()
 
         if score < best_score:
