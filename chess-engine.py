@@ -190,6 +190,61 @@ def center_control(board):
                 score -= center_control_point
     return score
 
+def evaluate_king_safety(board):
+    W_shield_1 = 1.0    
+    W_shield_2 = 0.5  
+    W_shield_3 = 0.25  
+    W_open_file = -15  
+    W_attack_weight = {chess.QUEEN: -20, chess.ROOK: -15, chess.BISHOP: -10, chess.KNIGHT: -8, chess.PAWN: -5}
+    W_central_penalty = -30  
+    W_escape_square = 5  
+    score = 0
+    for color in [chess.WHITE, chess.BLACK]:
+        king_square = board.king(color)
+        file = chess.square_file(king_square)
+        rank = chess.square_rank(king_square)
+        P1 = P2 = P3 = 0
+        for i in [-2, -1, 0, 1, 2]:  
+            file_to_check = file + i
+            if 0 <= file_to_check < 8:  
+                for j, weight in zip([1, 2, 3], [W_shield_1, W_shield_2, W_shield_3]):
+                    rank_to_check = rank - j if color == chess.WHITE else rank + j
+                    if 0 <= rank_to_check < 8:  
+                        sq = chess.square(file_to_check, rank_to_check)
+                        piece = board.piece_at(sq)
+                        if piece and piece.piece_type == chess.PAWN and piece.color == color:
+                            if j == 1:
+                                P1 += 1
+                            elif j == 2:
+                                P2 += 1
+                            elif j == 3:
+                                P3 += 1
+        pawn_shield_score = (P1 * W_shield_1) + (P2 * W_shield_2) + (P3 * W_shield_3)
+        open_file_penalty = 0
+        for i in [-1, 0, 1]:
+            file_to_check = file + i
+            if 0 <= file_to_check < 8:
+                if all(board.piece_at(chess.square(file_to_check, r)) is None for r in range(8)):  
+                    open_file_penalty += W_open_file
+        attacking_penalty = 0
+        king_zone = {king_square}
+        for i in range(-1, 2):
+            for j in range(-1, 2):
+                if 0 <= file + i < 8 and 0 <= rank + j < 8:
+                    king_zone.add(chess.square(file + i, rank + j))
+        for sq in king_zone:
+            for piece_type, weight in W_attack_weight.items():
+                if board.is_attacked_by(not color, sq):
+                    attacking_penalty += weight
+        central_penalty = W_central_penalty if board.fullmove_number < 30 and king_square in {chess.D4, chess.D5, chess.E4, chess.E5} else 0
+        escape_bonus = len(list(board.legal_moves)) * W_escape_square
+        king_safety_score = (pawn_shield_score + open_file_penalty + attacking_penalty + central_penalty + escape_bonus)
+        if color == chess.WHITE:
+            score += king_safety_score
+        else:
+            score -= king_safety_score
+    return score
+
 def play_best_ai_move(board):
     
     best_move = None
@@ -197,7 +252,7 @@ def play_best_ai_move(board):
 
     for move in board.legal_moves:
         board.push(move)
-        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
+        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)+evaluate_king_safety(board)
         board.pop()
 
         if score < best_score:
