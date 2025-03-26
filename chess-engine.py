@@ -3,7 +3,6 @@ import pygame as pg
 import time
 import moviepy.editor
 import tkinter as tk
-import random
 
 def draw_board(screen):
     for i in range(8):
@@ -145,8 +144,7 @@ def piece_position_value(board):
                 [-1, -2, -2, -2, -2, -2, -2, -1],
                 [2, 2, 0, 0, 0, 0, 2, 2],
                 [2, 3, 1, 0, 0, 1, 3, 2]
-            ]
-    }
+            ]}
     s_val = 0
     for square in chess.SQUARES:
         piece = board.piece_at(square)
@@ -158,13 +156,10 @@ def piece_position_value(board):
 
 def evaluate_black_targeted_squares(board):
     black_targeted = set()
-
     for move in board.legal_moves:
         if not board.piece_at(move.from_square) or board.piece_at(move.from_square).color == chess.BLACK:
             black_targeted.add(move.to_square)
-
     return len(black_targeted)
-
 
 def piece_values_checker(board):
     piece_values = {
@@ -201,12 +196,12 @@ def center_control(board):
     return score
 
 def evaluate_king_safety(board):
-    W_shield_1 = 1.0    
-    W_shield_2 = 0.5  
-    W_shield_3 = 0.25  
-    W_open_file = -15  
+    W_shield_1 = 1.0
+    W_shield_2 = 0.5
+    W_shield_3 = 0.25
+    W_open_file = -15
     W_attack_weight = {chess.QUEEN: -20, chess.ROOK: -15, chess.BISHOP: -10, chess.KNIGHT: -8, chess.PAWN: -5}
-    W_central_penalty = -30  
+    W_central_penalty = -30
     W_escape_square = 5  
     score = 0
     for color in [chess.WHITE, chess.BLACK]:
