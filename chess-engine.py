@@ -159,6 +159,44 @@ def play_ai_move(board):
                 [2, 3, 1, 0, 0, 1, 3, 2]
             ]
     }
+
+def piece_values_checker(board):
+    piece_values = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
+        chess.KING: 0  # King is invaluable in chess
+    }
+
+    score = 0
+    for square in chess.SQUARES:
+        piece = board.piece_at(square)
+        if piece:
+            value = piece_values[piece.piece_type]
+            if piece.color == chess.WHITE:
+                score += value
+            else:
+                score -= value
+    return score
+    
+def play_best_ai_move(board):
+    
+    best_move = None
+    best_score = float('inf') 
+
+    for move in board.legal_moves:
+        board.push(move)
+        score = piece_values_checker(board)
+        board.pop()
+
+        if score < best_score:
+            best_score = score
+            best_move = move
+
+    if best_move:
+        board.push(best_move)
         
 def play_again(root):
     def inner():
