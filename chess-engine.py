@@ -287,7 +287,9 @@ def play_best_ai_move(board):
 
     for move in board.legal_moves:
         board.push(move)
-        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)+evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)+0.2*evaluate_forks(board)
+        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
+        +evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)
+        +0.2*evaluate_forks(board)
         board.pop()
 
         if score < best_score:
