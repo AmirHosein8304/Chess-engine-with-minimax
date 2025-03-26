@@ -163,7 +163,7 @@ def piece_values_checker(board):
         chess.BISHOP: 3,
         chess.ROOK: 5,
         chess.QUEEN: 9,
-        chess.KING: 0  # King is invaluable in chess
+        chess.KING: 0 
     }
 
     score = 0
