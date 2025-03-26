@@ -32,7 +32,7 @@ def place_queen(st_sq,en_sq,root,board):
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.QUEEN)
         board.push(move)
-        play_ai_move(board)
+        play_best_ai_move(board)
     return inner
 
 def place_rook(st_sq, en_sq, root,board):
@@ -41,7 +41,7 @@ def place_rook(st_sq, en_sq, root,board):
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.ROOK)
         board.push(move)
-        play_ai_move(board)
+        play_best_ai_move(board)
     return inner
 
 def place_knight(st_sq, en_sq, root,board):
@@ -50,7 +50,7 @@ def place_knight(st_sq, en_sq, root,board):
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.KNIGHT)
         board.push(move)
-        play_ai_move(board)
+        play_best_ai_move(board)
     return inner
 
 def place_bishop(st_sq, en_sq, root,board):
@@ -59,7 +59,7 @@ def place_bishop(st_sq, en_sq, root,board):
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.BISHOP)
         board.push(move)
-        play_ai_move(board)
+        play_best_ai_move(board)
     return inner
 
 def promote_pawn(st_sq,en_sq,board):
@@ -293,7 +293,7 @@ def main():
                                 pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
                                 pg.mixer.music.play()
                             c_m_f = False
-                            # play_ai_move(board)
+                            play_best_ai_move(board)
         draw_board(screen)
         draw_pieces(board,screen)
         pg.display.flip()
