@@ -78,19 +78,7 @@ def promote_pawn(st_sq,en_sq,board):
     bishop_button.place(x=10, y=275)
     message_root.mainloop()
 
-def play_ai_move(board):
-    # legal_moves = list(board.legal_moves)
-    # if legal_moves:
-    #     move = random.choice(legal_moves)
-    #     board.push(move)
-    peice_val = {
-        chess.KING: 1000,
-        chess.QUEEN: 9,
-        chess.ROOK: 5,
-        chess.BISHOP: 3,
-        chess.KNIGHT: 3,
-        chess.PAWN: 1
-    }
+def piece_position_value(board):
     piece_pos_val = {
         chess.PAWN:
             [
@@ -159,6 +147,14 @@ def play_ai_move(board):
                 [2, 3, 1, 0, 0, 1, 3, 2]
             ]
     }
+    s_val = 0
+    for square in chess.SQUARES:
+        piece = board.piece_at(square)
+        if piece:
+            value = piece_pos_val[piece.piece_type][7 - chess.square_rank(square)][chess.square_file(square)]
+            if piece.color == chess.WHITE:
+                s_val += value
+    return s_val
 
 def piece_values_checker(board):
     piece_values = {
@@ -188,7 +184,7 @@ def play_best_ai_move(board):
 
     for move in board.legal_moves:
         board.push(move)
-        score = piece_values_checker(board)
+        score = piece_values_checker(board)+piece_position_value(board)
         board.pop()
 
         if score < best_score:
