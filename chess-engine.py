@@ -156,6 +156,16 @@ def piece_position_value(board):
                 s_val += value
     return s_val
 
+def evaluate_black_targeted_squares(board):
+    black_targeted = set()
+
+    for move in board.legal_moves:
+        if not board.piece_at(move.from_square) or board.piece_at(move.from_square).color == chess.BLACK:
+            black_targeted.add(move.to_square)
+
+    return len(black_targeted)
+
+
 def piece_values_checker(board):
     piece_values = {
         chess.PAWN: 1,
@@ -197,7 +207,7 @@ def play_best_ai_move(board):
 
     for move in board.legal_moves:
         board.push(move)
-        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
+        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)+0.1*evaluate_black_targeted_squares(board)
         board.pop()
 
         if score < best_score:
