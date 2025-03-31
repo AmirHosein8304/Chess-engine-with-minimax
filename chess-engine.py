@@ -24,41 +24,50 @@ def draw_pieces(board,screen):
                 else:
                     piece_image = pg.image.load(rf"pic\{'b'+piece.symbol()}.png")
                     screen.blit(piece_image, (i * 80, j * 80))
+    pg.display.update()
 
 def place_queen(st_sq,en_sq,root,board):
     def inner():
-        global move
+        global move,screen
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.QUEEN)
         board.push(move)
-        play_best_ai_move(board)
+        draw_board(screen)
+        draw_pieces(board, screen)
+        play_best_ai_move(board,screen)
     return inner
 
 def place_rook(st_sq, en_sq, root,board):
     def inner():
-        global move
+        global move,screen
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.ROOK)
         board.push(move)
-        play_best_ai_move(board)
+        draw_board(screen)
+        draw_pieces(board, screen)
+        play_best_ai_move(board,screen)
     return inner
 
 def place_knight(st_sq, en_sq, root,board):
     def inner():
-        global move
+        global move,screen
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.KNIGHT)
         board.push(move)
-        play_best_ai_move(board)
+        draw_board(screen)
+        draw_pieces(board, screen)
+        play_best_ai_move(board,screen)
     return inner
 
 def place_bishop(st_sq, en_sq, root,board):
     def inner():
-        global move
+        global move,screen
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.BISHOP)
         board.push(move)
-        play_best_ai_move(board)
+        draw_board(screen)
+        draw_pieces(board, screen)
+        play_best_ai_move(board,screen)
     return inner
 
 def promote_pawn(st_sq,en_sq,board):
@@ -280,8 +289,126 @@ def evaluate_king_safety(board):
             score -= king_safety_score
     return score
 
-def play_best_ai_move(board):
+def evaluate_pawn_structure(board):
+    W_connected = 10
+    W_isolated = -15
+    W_doubled = -20
+    W_advanced = 5
+
+    score = 0
+
+    for color in [chess.WHITE, chess.BLACK]:
+        pawn_files = {}  
+        isolated_pawns = 0
+        doubled_pawns = 0
+        connected_pawns = 0
+        advanced_pawns = 0
+
+        for square in chess.SQUARES:
+            piece = board.piece_at(square)
+            if piece and piece.piece_type == chess.PAWN and piece.color == color:
+                file_index = chess.square_file(square)
+                rank_index = chess.square_rank(square)
+
+                if file_index in pawn_files:
+                    pawn_files[file_index].append(rank_index)
+                else:
+                    pawn_files[file_index] = [rank_index]
+
+                if (color == chess.WHITE and rank_index >= 4) or (color == chess.BLACK and rank_index <= 3):
+                    advanced_pawns += 1
+
+        for file_index, ranks in pawn_files.items():
+            ranks.sort()
+            if len(ranks) > 1:
+                doubled_pawns += (len(ranks) - 1)
+
+            #isolated pawns
+            if (file_index - 1 not in pawn_files) and (file_index + 1 not in pawn_files):
+                isolated_pawns += len(ranks)
+
+            #connected pawns
+            if (file_index - 1 in pawn_files or file_index + 1 in pawn_files):
+                connected_pawns += len(ranks)
+
+        #formula
+        pawn_structure_score = (
+            (connected_pawns * W_connected) -
+            (isolated_pawns * W_isolated) -
+            (doubled_pawns * W_doubled) +
+            (advanced_pawns * W_advanced)
+        )
+
+        if color == chess.WHITE:
+            score += pawn_structure_score
+        else:
+            score -= pawn_structure_score
+
+    return score
+
+def play_best_ai_move(board,screen):
+    global running
+    if board.is_checkmate():
+        color = 'black' if board.turn==chess.BLACK else 'white'
+        for i in range(8):
+            for j in range(8):
+                piece = board.piece_at(chess.square(i, 7 - j))
+                if piece and piece.piece_type == chess.KING and piece.color == board.turn:
+                    screen.blit(pg.image.load(r"pic\check_block.png"),(i*80,j*80))
+                    pg.mixer.music.load(r"voc\مات.mp3")
+                    pg.display.update()
+                    pg.mixer.music.play()
+                    time.sleep(2)
+        pg.display.set_caption('checkmate')
+        clip = moviepy.editor.VideoFileClip('checkmate.mp4')
+        clip.preview()
+        pg.quit()
+        screen = pg.display.set_mode((640, 640))
+        pg.display.set_caption('Game Over!')
+        screen.blit(pg.image.load(rf"pic\{color}_lost.png"),(0,0))
+        pg.display.update()
+        time.sleep(1)
+        root = tk.Tk()
+        root.title('Play agian?')
+        root.eval('tk::PlaceWindow . center')
+        root.geometry('500x100')
+        message = tk.Label(root, text='Game Over!Do you want to play again?', font = ("Comic Sans MS", 18))
+        message.place(x=30, y=0)
+        no_button = tk.Button(root, text='No', font = ("Comic Sans MS", 18),command=root.destroy)
+        no_button.place(x=100, y=50 )
+        yes_button = tk.Button(root, text='Yes', font = ("Comic Sans MS", 18), command=play_again(root))
+        yes_button.place(x=300, y=50)
+        root.mainloop()
+        running = False
+        return
+    elif board.is_check():
+        color = 'black' if board.turn==chess.BLACK else 'white'
+        screen.blit(pg.image.load(rf"pic\{color}_king_is_in_check.png"),(0,0))
+        pg.mixer.music.load(r"voc\کیش.mp3")
+        pg.display.update()
+        pg.mixer.music.play()
+        time.sleep(2)
+    elif board.is_stalemate():
+        screen.blit(pg.image.load(r"pic\stalemate.png"), (0, 0))
+        pg.mixer.music.load(r"voc\مات.mp3")
+        pg.display.update()
+        pg.mixer.music.play()
+        time.sleep(2)
+        root = tk.Tk()
+        root.title('Play agian?')
+        root.eval('tk::PlaceWindow . center')
+        root.geometry('500x100')
+        message = tk.Label(root, text='Game Over!Do you want to play again?', font = ("Comic Sans MS", 18))
+        message.place(x=30, y=0)
+        no_button = tk.Button(root, text='No', font = ("Comic Sans MS", 18), command=root.destroy)
+        no_button.place(x=100, y=50)
+        yes_button = tk.Button(root, text='Yes', font = ("Comic Sans MS", 18), command=play_again(root))
+        yes_button.place(x=300, y=50)
+        root.mainloop()
+        running = False
+        return
     
+    time.sleep(0.5)
     best_move = None
     best_score = float('inf') 
 
@@ -289,7 +416,7 @@ def play_best_ai_move(board):
         board.push(move)
         score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
         +evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)
-        +0.2*evaluate_forks(board)
+        +0.2*evaluate_forks(board)+evaluate_pawn_structure(board)
         board.pop()
 
         if score < best_score:
@@ -297,7 +424,15 @@ def play_best_ai_move(board):
             best_move = move
 
     if best_move:
+        r_piece = board.piece_at(best_move.to_square)
         board.push(best_move)
+        draw_board(screen)
+        draw_pieces(board,screen)
+        if r_piece:
+            pg.mixer.music.load(r"voc\حذف مهره.mp3")
+        else:
+            pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
+        pg.mixer.music.play()
         
 def play_again(root):
     def inner():
@@ -318,6 +453,8 @@ def main():
     running = True
     counter = 0
     c_m_f = False
+    draw_board(screen)
+    draw_pieces(board, screen)
     while running:
         for event in pg.event.get():
             if board.is_checkmate():
@@ -398,9 +535,9 @@ def main():
                                 pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
                                 pg.mixer.music.play()
                             c_m_f = False
-                            play_best_ai_move(board)
-        draw_board(screen)
-        draw_pieces(board,screen)
+                            draw_board(screen)
+                            draw_pieces(board,screen)
+                            play_best_ai_move(board,screen)
         pg.display.flip()
     pg.quit()
     
