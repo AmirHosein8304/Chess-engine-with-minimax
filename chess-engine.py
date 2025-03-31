@@ -168,7 +168,7 @@ def piece_position_value(board):
 def evaluate_black_targeted_squares(board):
     black_targeted = set()
     for move in board.legal_moves:
-        if not board.piece_at(move.from_square) or board.piece_at(move.from_square).color == chess.BLACK:
+        if not board.piece_at(move.from_square) :
             black_targeted.add(move.to_square)
     return len(black_targeted)
 
@@ -186,13 +186,13 @@ def evaluate_forks(board):
 
     for square in chess.SQUARES:
         piece = board.piece_at(square)
-        if piece and piece.color == chess.BLACK:  
+        if piece:  
             attacked_squares = board.attacks(square)
             targeted_pieces = []
 
             for attacked_square in attacked_squares:
                 target = board.piece_at(attacked_square)
-                if target and target.color == chess.WHITE:  
+                if target :  
                     targeted_pieces.append(target)
 
             if len(targeted_pieces) >= 2:  
