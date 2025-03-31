@@ -476,7 +476,7 @@ def value(board,is_maximizing):
 
 def max_value(board):
     for move in board.legal_moves():
-
+        pass
 def min_value(board):
     pass
 
