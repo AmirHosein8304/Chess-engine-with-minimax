@@ -86,6 +86,7 @@ def promote_pawn(st_sq,en_sq,board):
     bishop_button.place(x=10, y=275)
     message_root.mainloop()
 
+#Evaluation functions:
 def piece_position_value(board):
     piece_pos_val = {
         chess.PAWN:
@@ -158,9 +159,10 @@ def piece_position_value(board):
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece:
-            value = piece_pos_val[piece.piece_type][7 - chess.square_rank(square)][chess.square_file(square)]
             if piece.color == chess.BLACK:
-                s_val += value
+                s_val += piece_pos_val[piece.piece_type][7 - chess.square_rank(square)][chess.square_file(square)]
+            else:
+                s_val -= piece_pos_val[piece.piece_type][7 - chess.square_rank(square)][chess.square_file(square)]
     return s_val
 
 def evaluate_black_targeted_squares(board):
@@ -226,8 +228,6 @@ def square_target_with_piece_values(board, square, weight=2):
     score = (allied_target_score - enemy_target_score) * weight
     return score
 
-
-
 def piece_values_checker(board):
     piece_values = {
         chess.PAWN: 1,
@@ -244,9 +244,9 @@ def piece_values_checker(board):
         if piece:
             value = piece_values[piece.piece_type]
             if piece.color == chess.WHITE:
-                score += value
-            else:
                 score -= value
+            else:
+                score += value
     return score
 
 def center_control(board):
@@ -257,9 +257,9 @@ def center_control(board):
         piece = board.piece_at(square)
         if piece:
             if piece.color == chess.WHITE:
-                score += center_control_point
-            else:
                 score -= center_control_point
+            else:
+                score += center_control_point
     return score
 
 def evaluate_king_safety(board):
@@ -312,9 +312,9 @@ def evaluate_king_safety(board):
         escape_bonus = len(list(board.legal_moves)) * W_escape_square
         king_safety_score = (pawn_shield_score + open_file_penalty + attacking_penalty + central_penalty + escape_bonus)
         if color == chess.WHITE:
-            score += king_safety_score
-        else:
             score -= king_safety_score
+        else:
+            score += king_safety_score
     return score
 
 def evaluate_pawn_structure(board):
@@ -368,9 +368,9 @@ def evaluate_pawn_structure(board):
         )
 
         if color == chess.WHITE:
-            score += pawn_structure_score
-        else:
             score -= pawn_structure_score
+        else:
+            score += pawn_structure_score
 
     return score
 
@@ -461,7 +461,25 @@ def play_best_ai_move(board,screen):
         else:
             pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
         pg.mixer.music.play()
-        
+
+def value(board,is_maximizing):
+    result = board.result()
+    if result == "1-0":
+        return -1000
+    elif result == "0-1":
+        return 1000
+    elif result == "1/2-1/2":
+        return 0
+    if is_maximizing:
+        return max_value(board)
+    return min_value(board)
+
+def max_value(board):
+    for move in board.legal_moves():
+        pass
+def min_value(board):
+    pass
+
 def play_again(root):
     def inner():
         root.destroy()
