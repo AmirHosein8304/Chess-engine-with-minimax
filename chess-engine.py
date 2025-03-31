@@ -168,7 +168,7 @@ def piece_position_value(board):
 def evaluate_black_targeted_squares(board):
     black_targeted = set()
     for move in board.legal_moves:
-        if not board.piece_at(move.from_square) :
+        if not board.piece_at(move.from_square) or board.piece_at(move.from_square).color == chess.BLACK:
             black_targeted.add(move.to_square)
     return len(black_targeted)
 
@@ -186,13 +186,13 @@ def evaluate_forks(board):
 
     for square in chess.SQUARES:
         piece = board.piece_at(square)
-        if piece:  
+        if piece and piece.color == chess.BLACK:  
             attacked_squares = board.attacks(square)
             targeted_pieces = []
 
             for attacked_square in attacked_squares:
                 target = board.piece_at(attacked_square)
-                if target :  
+                if target and target.color == chess.WHITE:  
                     targeted_pieces.append(target)
 
             if len(targeted_pieces) >= 2:  
@@ -244,9 +244,9 @@ def piece_values_checker(board):
         if piece:
             value = piece_values[piece.piece_type]
             if piece.color == chess.WHITE:
-                score -= value
-            else:
                 score += value
+            else:
+                score -= value
     return score
 
 def center_control(board):
@@ -257,9 +257,9 @@ def center_control(board):
         piece = board.piece_at(square)
         if piece:
             if piece.color == chess.WHITE:
-                score -= center_control_point
-            else:
                 score += center_control_point
+            else:
+                score -= center_control_point
     return score
 
 def evaluate_king_safety(board):
@@ -312,9 +312,9 @@ def evaluate_king_safety(board):
         escape_bonus = len(list(board.legal_moves)) * W_escape_square
         king_safety_score = (pawn_shield_score + open_file_penalty + attacking_penalty + central_penalty + escape_bonus)
         if color == chess.WHITE:
-            score -= king_safety_score
-        else:
             score += king_safety_score
+        else:
+            score -= king_safety_score
     return score
 
 def evaluate_pawn_structure(board):
@@ -368,9 +368,9 @@ def evaluate_pawn_structure(board):
         )
 
         if color == chess.WHITE:
-            score -= pawn_structure_score
-        else:
             score += pawn_structure_score
+        else:
+            score -= pawn_structure_score
 
     return score
 
@@ -476,7 +476,7 @@ def value(board,is_maximizing):
 
 def max_value(board):
     for move in board.legal_moves():
-        pass
+
 def min_value(board):
     pass
 
