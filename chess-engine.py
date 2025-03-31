@@ -199,6 +199,34 @@ def evaluate_forks(board):
 
     return fork_score
 
+def square_target_with_piece_values(board, square, weight=2):
+    piece_values = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
+        chess.KING: 0
+    }
+    
+    allied_target_score = 0
+    enemy_target_score = 0
+
+    for sq in chess.SQUARES:
+        piece = board.piece_at(sq)
+        if piece:
+            legal_moves = board.attacks(sq)
+            if square in legal_moves:
+                piece_value = piece_values[piece.piece_type]
+                if piece.color == board.turn:
+                    allied_target_score += piece_value
+                else: 
+                    enemy_target_score += piece_value
+
+    score = (allied_target_score - enemy_target_score) * weight
+    return score
+
+
 
 def piece_values_checker(board):
     piece_values = {
@@ -416,7 +444,7 @@ def play_best_ai_move(board,screen):
         board.push(move)
         score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
         +evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)
-        +0.2*evaluate_forks(board)+evaluate_pawn_structure(board)
+        +0.2*evaluate_forks(board)+evaluate_pawn_structure(board)+square_target_with_piece_values(board,move.to_square)
         board.pop()
 
         if score < best_score:
