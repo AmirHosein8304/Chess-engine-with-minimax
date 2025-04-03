@@ -611,7 +611,7 @@ def main():
                 running = False
             elif board.is_check() and not c_m_f:
                 draw_board(screen)
-                draw_pieces(screen,board)
+                draw_pieces(board,screen)
                 pg.display.update()
                 time.sleep(0.5)
                 color = 'black' if board.turn==chess.BLACK else 'white'
