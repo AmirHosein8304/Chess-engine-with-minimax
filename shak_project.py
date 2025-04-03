@@ -425,6 +425,7 @@ def find_best_move(board, depth=3):
     return best_move
 
 def play_best_ai_move(board, screen):
+    start_time = time.time()
     global running
     if board.is_checkmate():
         color = 'black' if board.turn == chess.BLACK else 'white'
@@ -458,6 +459,7 @@ def play_best_ai_move(board, screen):
         yes_button.place(x=300, y=50)
         root.mainloop()
         running = False
+        print(time.time()-start_time)
         return
 
     elif board.is_check():
@@ -486,6 +488,7 @@ def play_best_ai_move(board, screen):
         yes_button.place(x=300, y=50)
         root.mainloop()
         running = False
+        print(time.time()-start_time)
         return
 
     best_move = find_best_move(board)
@@ -499,7 +502,7 @@ def play_best_ai_move(board, screen):
         else:
             pg.mixer.music.load("voc\گذاشتن مهره.mp3")
         pg.mixer.music.play()
-
+        print(time.time()-start_time)
 def evaluate_board(board):
     score = 0
     score += piece_values_checker(board)
