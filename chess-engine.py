@@ -462,6 +462,38 @@ def play_best_ai_move(board,screen):
             pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
         pg.mixer.music.play()
 
+def minimax(board, depth, alpha, beta, maximizing_player):
+    if depth == 0 or board.is_checkmate():
+        return evaluate_board(board)
+    if maximizing_player:
+        max_eval = float('-inf')
+        for move in board.legal_moves:
+            board.push(move)
+            eval = minimax(board, depth - 1, alpha, beta, False)
+            board.pop()
+            max_eval = max(max_eval, eval)
+            alpha = max(alpha, eval)
+            if beta <= alpha:
+                break
+        return max_eval
+    else:
+        min_eval = float('inf')
+        for move in board.legal_moves:
+            board.push()
+            eval = minimax(board, depth - 1, alpha, beta, True)
+            board.pop()
+            min_eval = min(min_eval, eval)
+            beta = min(beta, eval)
+            if beta <= alpha:
+                break
+        return min_eval
+
+def evaluate_board(board):
+    score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
+    +evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)
+    +0.2*evaluate_forks(board)+evaluate_pawn_structure(board)+square_target_with_piece_values(board, move.to_square)
+    return score
+
 def value(board,is_maximizing):
     result = board.result()
     if result == "1-0":
@@ -470,15 +502,18 @@ def value(board,is_maximizing):
         return 1000
     elif result == "1/2-1/2":
         return 0
-    if is_maximizing:
-        return max_value(board)
-    return min_value(board)
-
-def max_value(board):
-    for move in board.legal_moves():
-        pass
-def min_value(board):
-    pass
+    result = float('-inf') if is_maximizing else float('inf')
+    for move in board.legal_moves:
+        board.push(move)
+        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
+        +evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)
+        +0.2*evaluate_forks(board)+evaluate_pawn_structure(board)+square_target_with_piece_values(board, move.to_square)
+        if is_maximizing:
+            result = max(result, score)
+        else:
+            result = min(result, score)
+        board.pop()
+    return result
 
 def play_again(root):
     def inner():
