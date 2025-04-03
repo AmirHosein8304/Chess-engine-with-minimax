@@ -540,10 +540,28 @@ def value(board,is_maximizing):
     return min_value(board)
 
 def max_value(board):
-    for move in board.legal_moves():
-        pass
+    if board.is_game_over():
+        return evaluate_board(board)
+    
+    max_eval = float('-inf')
+    for move in board.legal_moves:
+        board.push(move)
+        eval = min_value(board)
+        board.pop()
+        max_eval = max(max_eval, eval)
+    return max_eval
+
 def min_value(board):
-    pass
+    if board.is_game_over():
+        return evaluate_board(board)
+    
+    min_eval = float('inf')
+    for move in board.legal_moves:
+        board.push(move)
+        eval = max_value(board)
+        board.pop()
+        min_eval = min(min_eval, eval)
+    return min_eval
 
 def play_again(root):
     def inner():
