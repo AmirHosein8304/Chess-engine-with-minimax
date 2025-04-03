@@ -86,7 +86,6 @@ def promote_pawn(st_sq,en_sq,board):
     bishop_button.place(x=10, y=275)
     message_root.mainloop()
 
-#Evaluation functions:
 def piece_position_value(board):
     piece_pos_val = {
         chess.PAWN:
@@ -351,15 +350,15 @@ def evaluate_pawn_structure(board):
             if len(ranks) > 1:
                 doubled_pawns += (len(ranks) - 1)
 
-            #isolated pawns
+
             if (file_index - 1 not in pawn_files) and (file_index + 1 not in pawn_files):
                 isolated_pawns += len(ranks)
 
-            #connected pawns
+            
             if (file_index - 1 in pawn_files or file_index + 1 in pawn_files):
                 connected_pawns += len(ranks)
 
-        #formula
+        
         pawn_structure_score = (
             (connected_pawns * W_connected) -
             (isolated_pawns * W_isolated) -
@@ -373,8 +372,6 @@ def evaluate_pawn_structure(board):
             score -= pawn_structure_score
 
     return score
-
-
 
 def minimax(board, depth, alpha, beta, maximizing_player):
     if depth == 0 or board.is_game_over():
@@ -406,7 +403,7 @@ def minimax(board, depth, alpha, beta, maximizing_player):
 def find_best_move(board, depth=3):
     best_move = None
     best_score = float('-inf') if board.turn == chess.WHITE else float('inf')
-    maximizing = board.turn == chess.WHITE  # White is maximizing, Black is minimizing
+    maximizing = board.turn == chess.WHITE
     
     for move in board.legal_moves:
         board.push(move)
@@ -473,7 +470,7 @@ def play_best_ai_move(board, screen):
         c_m_f = True
 
     elif board.is_stalemate():
-        screen.blit(pg.image.load("pic\stalemate.png"), (0, 0))
+        screen.blit(pg.image.load(r"pic\stalemate.png"), (0, 0))
         pg.mixer.music.load("voc\مات.mp3")
         pg.display.update()
         pg.mixer.music.play()
@@ -613,7 +610,7 @@ def main():
                 draw_board(screen)
                 draw_pieces(board,screen)
                 pg.display.update()
-                time.sleep(0.5)
+                time.sleep(1.5)
                 color = 'black' if board.turn==chess.BLACK else 'white'
                 screen.blit(pg.image.load(rf"pic\{color}_king_is_in_check.png"),(0,0))
                 pg.mixer.music.load(r"voc\کیش.mp3")
