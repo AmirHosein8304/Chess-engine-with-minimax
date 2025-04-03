@@ -426,6 +426,7 @@ def find_best_move(board, depth=3):
 
 def play_best_ai_move(board, screen):
     start_time = time.time()
+    c_m_f = False
     global running
     if board.is_checkmate():
         color = 'black' if board.turn == chess.BLACK else 'white'
@@ -462,13 +463,14 @@ def play_best_ai_move(board, screen):
         print(time.time()-start_time)
         return
 
-    elif board.is_check():
+    elif board.is_check() and not c_m_f:
         color = 'black' if board.turn == chess.BLACK else 'white'
         screen.blit(pg.image.load(f"pic\{color}_king_is_in_check.png"), (0, 0))
         pg.mixer.music.load("voc\کیش.mp3")
         pg.display.update()
         pg.mixer.music.play()
         time.sleep(2)
+        c_m_f = True
 
     elif board.is_stalemate():
         screen.blit(pg.image.load("pic\stalemate.png"), (0, 0))
@@ -495,6 +497,7 @@ def play_best_ai_move(board, screen):
     if best_move:
         r_piece = board.piece_at(best_move.to_square)
         board.push(best_move)
+        c_m_f = False
         draw_board(screen)
         draw_pieces(board, screen)
         if r_piece:
@@ -503,6 +506,7 @@ def play_best_ai_move(board, screen):
             pg.mixer.music.load("voc\گذاشتن مهره.mp3")
         pg.mixer.music.play()
         print(time.time()-start_time)
+        
 def evaluate_board(board):
     score = 0
     score += piece_values_checker(board)
@@ -606,6 +610,10 @@ def main():
                 root.mainloop()
                 running = False
             elif board.is_check() and not c_m_f:
+                draw_board(screen)
+                draw_pieces(screen,board)
+                pg.display.update()
+                time.sleep(0.5)
                 color = 'black' if board.turn==chess.BLACK else 'white'
                 screen.blit(pg.image.load(rf"pic\{color}_king_is_in_check.png"),(0,0))
                 pg.mixer.music.load(r"voc\کیش.mp3")
