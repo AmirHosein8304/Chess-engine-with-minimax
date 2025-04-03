@@ -1,7 +1,7 @@
 import chess
 import pygame as pg
 import time
-import moviepy
+import moviepy.editor
 import tkinter as tk
 
 def draw_board(screen):
