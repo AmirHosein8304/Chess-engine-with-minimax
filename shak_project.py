@@ -527,6 +527,17 @@ def play_best_ai_move(board, screen):
             pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
         pg.mixer.music.play()
 
+def evaluate_board(board):
+    score = 0
+    score += piece_values_checker(board)
+    score += piece_position_value(board)
+    score += center_control(board)
+    score += evaluate_king_safety(board)
+    score += 0.1 * evaluate_black_targeted_squares(board)
+    score += 0.2 * evaluate_forks(board)
+    score += evaluate_pawn_structure(board)
+    return score
+
 def value(board,is_maximizing):
     result = board.result()
     if result == "1-0":
