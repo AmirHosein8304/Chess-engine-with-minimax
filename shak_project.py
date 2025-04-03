@@ -1,7 +1,7 @@
 import chess
 import pygame as pg
 import time
-import moviepy.editor
+import moviepy
 import tkinter as tk
 
 def draw_board(screen):
@@ -19,10 +19,10 @@ def draw_pieces(board,screen):
             piece = board.piece_at(chess.square(i, 7 - j))
             if piece:
                 if piece.color == chess.WHITE:
-                    piece_image = pg.image.load(rf"pic\{'w'+piece.symbol()}.png")
+                    piece_image = pg.image.load(rf"{'w'+piece.symbol()}.png")
                     screen.blit(piece_image, (i * 80, j * 80))
                 else:
-                    piece_image = pg.image.load(rf"pic\{'b'+piece.symbol()}.png")
+                    piece_image = pg.image.load(rf"{'b'+piece.symbol()}.png")
                     screen.blit(piece_image, (i * 80, j * 80))
     pg.display.update()
 
@@ -376,34 +376,53 @@ def evaluate_pawn_structure(board):
 
 
 
-def minimax_with_alpha_beta(board, depth, alpha, beta, maximizingPlayer):
+def minimax(board, depth, alpha, beta, maximizing_player):
     if depth == 0 or board.is_game_over():
-        return value(board, maximizingPlayer)
+        return evaluate_board(board)
     
-    if maximizingPlayer:
-        maxEval = float('-inf')
+    if maximizing_player:
+        max_eval = float('-inf')
         for move in board.legal_moves:
             board.push(move)
-            eval = minimax_with_alpha_beta(board, depth - 1, alpha, beta, False)
+            eval = minimax(board, depth - 1, alpha, beta, False)
             board.pop()
-            maxEval = max(maxEval, eval)
+            max_eval = max(max_eval, eval)
             alpha = max(alpha, eval)
             if beta <= alpha:
                 break
-        return maxEval
+        return max_eval
     else:
-        minEval = float('inf')
+        min_eval = float('inf')
         for move in board.legal_moves:
             board.push(move)
-            eval = minimax_with_alpha_beta(board, depth - 1, alpha, beta, True)
+            eval = minimax(board, depth - 1, alpha, beta, True)
             board.pop()
-            minEval = min(minEval, eval)
+            min_eval = min(min_eval, eval)
             beta = min(beta, eval)
             if beta <= alpha:
                 break
-        return minEval
+        return min_eval
 
-
+def find_best_move(board, depth=3):
+    best_move = None
+    best_score = float('-inf') if board.turn == chess.WHITE else float('inf')
+    maximizing = board.turn == chess.WHITE  # White is maximizing, Black is minimizing
+    
+    for move in board.legal_moves:
+        board.push(move)
+        score = minimax(board, depth - 1, float('-inf'), float('inf'), maximizing)
+        board.pop()
+        
+        if maximizing:
+            if score > best_score:
+                best_score = score
+                best_move = move
+        else:
+            if score < best_score:
+                best_score = score
+                best_move = move
+                
+    return best_move
 
 def play_best_ai_move(board, screen):
     global running
@@ -413,8 +432,8 @@ def play_best_ai_move(board, screen):
             for j in range(8):
                 piece = board.piece_at(chess.square(i, 7 - j))
                 if piece and piece.piece_type == chess.KING and piece.color == board.turn:
-                    screen.blit(pg.image.load(r"pic\check_block.png"), (i * 80, j * 80))
-                    pg.mixer.music.load(r"voc\مات.mp3")
+                    screen.blit(pg.image.load("check_block.png"), (i * 80, j * 80))
+                    pg.mixer.music.load("مات.mp3")
                     pg.display.update()
                     pg.mixer.music.play()
                     time.sleep(2)
@@ -424,7 +443,7 @@ def play_best_ai_move(board, screen):
         pg.quit()
         screen = pg.display.set_mode((640, 640))
         pg.display.set_caption('Game Over!')
-        screen.blit(pg.image.load(rf"pic\{color}_lost.png"), (0, 0))
+        screen.blit(pg.image.load(f"{color}_lost.png"), (0, 0))
         pg.display.update()
         time.sleep(1)
         root = tk.Tk()
@@ -443,15 +462,15 @@ def play_best_ai_move(board, screen):
 
     elif board.is_check():
         color = 'black' if board.turn == chess.BLACK else 'white'
-        screen.blit(pg.image.load(rf"pic\{color}_king_is_in_check.png"), (0, 0))
-        pg.mixer.music.load(r"voc\کیش.mp3")
+        screen.blit(pg.image.load(f"{color}_king_is_in_check.png"), (0, 0))
+        pg.mixer.music.load("کیش.mp3")
         pg.display.update()
         pg.mixer.music.play()
         time.sleep(2)
 
     elif board.is_stalemate():
-        screen.blit(pg.image.load(r"pic\stalemate.png"), (0, 0))
-        pg.mixer.music.load(r"voc\مات.mp3")
+        screen.blit(pg.image.load("stalemate.png"), (0, 0))
+        pg.mixer.music.load("مات.mp3")
         pg.display.update()
         pg.mixer.music.play()
         time.sleep(2)
@@ -469,62 +488,16 @@ def play_best_ai_move(board, screen):
         running = False
         return
 
-    # Incorporating minimax with alpha-beta pruning
-    best_move = None
-    best_score = float('-inf') if board.turn == chess.WHITE else float('inf')
-    alpha = float('-inf')
-    beta = float('inf')
-
-    for move in board.legal_moves:
-        board.push(move)
-        score = minimax_with_alpha_beta(board, depth=3, alpha=alpha, beta=beta, maximizingPlayer=(board.turn == chess.BLACK))
-        board.pop()
-
-        if board.turn == chess.WHITE:
-            if score > best_score:
-                best_score = score
-                best_move = move
-        else:
-            if score < best_score:
-                best_score = score
-                best_move = move
-
-    if best_move:
-        board.push(best_move)
-        draw_board(screen)
-        draw_pieces(board, screen)
-        removed_piece = board.piece_at(best_move.to_square)
-        if removed_piece:
-            pg.mixer.music.load(r"voc\حذف مهره.mp3")
-        else:
-            pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
-        pg.mixer.music.play()
-
-    
-    time.sleep(0.5)
-    best_move = None
-    best_score = float('inf') 
-
-    for move in board.legal_moves:
-        board.push(move)
-        score = piece_values_checker(board)+piece_position_value(board)+center_control(board)
-        +evaluate_king_safety(board)+0.1*evaluate_black_targeted_squares(board)
-        +0.2*evaluate_forks(board)+evaluate_pawn_structure(board)+square_target_with_piece_values(board,move.to_square)
-        board.pop()
-
-        if score < best_score:
-            best_score = score
-            best_move = move
-
+    best_move = find_best_move(board)
     if best_move:
         r_piece = board.piece_at(best_move.to_square)
         board.push(best_move)
         draw_board(screen)
-        draw_pieces(board,screen)
+        draw_pieces(board, screen)
         if r_piece:
-            pg.mixer.music.load(r"voc\حذف مهره.mp3")
+            pg.mixer.music.load("حذف مهره.mp3")
         else:
-            pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
+            pg.mixer.music.load("گذاشتن مهره.mp3")
         pg.mixer.music.play()
 
 def evaluate_board(board):
@@ -584,8 +557,8 @@ def main():
     pg.init()
     screen = pg.display.set_mode((640, 640))
     pg.display.set_caption("Chess")
-    pg.mixer.music.load(r"voc\war_horn_3.mp3")
-    screen.blit(pg.image.load(r"pic\welcome_page.png"), (0, 0))
+    pg.mixer.music.load(r"war_horn_3.mp3")
+    screen.blit(pg.image.load(r"welcome_page.png"), (0, 0))
     pg.display.update()
     pg.mixer.music.play()
     time.sleep(2)
@@ -603,8 +576,8 @@ def main():
                     for j in range(8):
                         piece = board.piece_at(chess.square(i, 7 - j))
                         if piece and piece.piece_type == chess.KING and piece.color == board.turn:
-                            screen.blit(pg.image.load(r"pic\check_block.png"),(i*80,j*80))
-                            pg.mixer.music.load(r"voc\مات.mp3")
+                            screen.blit(pg.image.load(r"check_block.png"),(i*80,j*80))
+                            pg.mixer.music.load(r"مات.mp3")
                             pg.display.update()
                             pg.mixer.music.play()
                             time.sleep(2)
@@ -614,7 +587,7 @@ def main():
                 pg.quit()
                 screen = pg.display.set_mode((640, 640))
                 pg.display.set_caption('Game Over!')
-                screen.blit(pg.image.load(rf"pic\{color}_lost.png"),(0,0))
+                screen.blit(pg.image.load(rf"{color}_lost.png"),(0,0))
                 pg.display.update()
                 time.sleep(1)
                 root = tk.Tk()
@@ -631,14 +604,14 @@ def main():
                 running = False
             elif board.is_check() and not c_m_f:
                 color = 'black' if board.turn==chess.BLACK else 'white'
-                screen.blit(pg.image.load(rf"pic\{color}_king_is_in_check.png"),(0,0))
-                pg.mixer.music.load(r"voc\کیش.mp3")
+                screen.blit(pg.image.load(rf"{color}_king_is_in_check.png"),(0,0))
+                pg.mixer.music.load(r"کیش.mp3")
                 pg.display.update()
                 pg.mixer.music.play()
                 time.sleep(2)
                 c_m_f = True
             elif board.is_stalemate():
-                screen.blit(pg.image.load(rf"pic\stalemate.png"), (0, 0))
+                screen.blit(pg.image.load(rf"stalemate.png"), (0, 0))
                 pg.display.update()
                 time.sleep(1)
                 running = False
@@ -669,10 +642,10 @@ def main():
                             r_piece = board.piece_at(end_square)
                             board.push(move)
                             if r_piece:
-                                pg.mixer.music.load(r"voc\حذف مهره.mp3")
+                                pg.mixer.music.load(r"حذف مهره.mp3")
                                 pg.mixer.music.play()
                             else:
-                                pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
+                                pg.mixer.music.load(r"گذاشتن مهره.mp3")
                                 pg.mixer.music.play()
                             c_m_f = False
                             draw_board(screen)
