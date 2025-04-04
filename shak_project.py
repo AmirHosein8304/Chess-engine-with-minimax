@@ -26,9 +26,9 @@ def draw_pieces(board,screen):
                     screen.blit(piece_image, (i * 80, j * 80))
     pg.display.update()
 
-def place_queen(st_sq,en_sq,root,board):
+def place_queen(st_sq,en_sq,root,board,screen):
     def inner():
-        global move,screen
+        global move
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.QUEEN)
         board.push(move)
@@ -37,9 +37,9 @@ def place_queen(st_sq,en_sq,root,board):
         play_best_ai_move(board,screen)
     return inner
 
-def place_rook(st_sq, en_sq, root,board):
+def place_rook(st_sq, en_sq, root,board,screen):
     def inner():
-        global move,screen
+        global move
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.ROOK)
         board.push(move)
@@ -48,9 +48,9 @@ def place_rook(st_sq, en_sq, root,board):
         play_best_ai_move(board,screen)
     return inner
 
-def place_knight(st_sq, en_sq, root,board):
+def place_knight(st_sq, en_sq, root,board,screen):
     def inner():
-        global move,screen
+        global move
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.KNIGHT)
         board.push(move)
@@ -59,9 +59,9 @@ def place_knight(st_sq, en_sq, root,board):
         play_best_ai_move(board,screen)
     return inner
 
-def place_bishop(st_sq, en_sq, root,board):
+def place_bishop(st_sq, en_sq, root,board,screen):
     def inner():
-        global move,screen
+        global move
         root.destroy()
         move = chess.Move(st_sq, en_sq, promotion=chess.BISHOP)
         board.push(move)
@@ -70,19 +70,19 @@ def place_bishop(st_sq, en_sq, root,board):
         play_best_ai_move(board,screen)
     return inner
 
-def promote_pawn(st_sq,en_sq,board):
+def promote_pawn(st_sq,en_sq,board,screen):
     message_root = tk.Tk()
     message_root.geometry("400x400")
     message_root.config(bg="khaki")
     messag = tk.Label(text="What kind of peices do you want?", bg="khaki", font=("Comic Sans MS", 18),fg="#0000FF")
     messag.place(x=10, y=10)
-    queen_button = tk.Button(bg="khaki", fg="#0000FF", text="Queen", font=("Comic Sans MS", 18), width=25,command=place_queen(st_sq,en_sq,message_root,board))
+    queen_button = tk.Button(bg="khaki", fg="#0000FF", text="Queen", font=("Comic Sans MS", 18), width=25,command=place_queen(st_sq,en_sq,message_root,board,screen))
     queen_button.place(x=10, y=50)
-    rook_button = tk.Button(bg="khaki", fg="#0000FF", text="Rook", font=("Comic Sans MS", 18), width=25,command=place_rook(st_sq,en_sq,message_root,board))
+    rook_button = tk.Button(bg="khaki", fg="#0000FF", text="Rook", font=("Comic Sans MS", 18), width=25,command=place_rook(st_sq,en_sq,message_root,board,screen))
     rook_button.place(x=10, y=125)
-    knight_button = tk.Button(bg="khaki", fg="#0000FF", text="Knight", font=("Comic Sans MS", 18), width=25,command=place_knight(st_sq,en_sq,message_root,board))
+    knight_button = tk.Button(bg="khaki", fg="#0000FF", text="Knight", font=("Comic Sans MS", 18), width=25,command=place_knight(st_sq,en_sq,message_root,board,screen))
     knight_button.place(x=10, y=200)
-    bishop_button = tk.Button(bg="khaki", fg="#0000FF", text="Bishop", font=("Comic Sans MS", 18), width=25,command=place_bishop(st_sq,en_sq,message_root,board))
+    bishop_button = tk.Button(bg="khaki", fg="#0000FF", text="Bishop", font=("Comic Sans MS", 18), width=25,command=place_bishop(st_sq,en_sq,message_root,board,screen))
     bishop_button.place(x=10, y=275)
     message_root.mainloop()
 
@@ -404,8 +404,11 @@ def find_best_move(board, depth=3):
     best_move = None
     best_score = float('-inf') if board.turn == chess.WHITE else float('inf')
     maximizing = board.turn == chess.WHITE
-    
+    start_time = time.time()
+    time_limit = 28
     for move in board.legal_moves:
+        if time.time() - start_time > time_limit:
+            break
         board.push(move)
         score = minimax(board, depth - 1, float('-inf'), float('inf'), maximizing)
         board.pop()
@@ -431,13 +434,13 @@ def play_best_ai_move(board, screen):
             for j in range(8):
                 piece = board.piece_at(chess.square(i, 7 - j))
                 if piece and piece.piece_type == chess.KING and piece.color == board.turn:
-                    screen.blit(pg.image.load("pic\check_block.png"), (i * 80, j * 80))
-                    pg.mixer.music.load("voc\مات.mp3")
+                    screen.blit(pg.image.load(r"pic\check_block.png"), (i * 80, j * 80))
+                    pg.mixer.music.load(r"voc\مات.mp3")
                     pg.display.update()
                     pg.mixer.music.play()
                     time.sleep(2)
         pg.display.set_caption('checkmate')
-        clip = moviepy.editor.VideoFileClip('voc\checkmate.mp4')
+        clip = moviepy.editor.VideoFileClip(r'voc\checkmate.mp4')
         clip.preview()
         pg.quit()
         screen = pg.display.set_mode((640, 640))
@@ -462,8 +465,8 @@ def play_best_ai_move(board, screen):
 
     elif board.is_check() and not c_m_f:
         color = 'black' if board.turn == chess.BLACK else 'white'
-        screen.blit(pg.image.load(f"pic\{color}_king_is_in_check.png"), (0, 0))
-        pg.mixer.music.load("voc\کیش.mp3")
+        screen.blit(pg.image.load(rf"pic\{color}_king_is_in_check.png"), (0, 0))
+        pg.mixer.music.load(r"voc\کیش.mp3")
         pg.display.update()
         pg.mixer.music.play()
         time.sleep(2)
@@ -471,7 +474,7 @@ def play_best_ai_move(board, screen):
 
     elif board.is_stalemate():
         screen.blit(pg.image.load(r"pic\stalemate.png"), (0, 0))
-        pg.mixer.music.load("voc\مات.mp3")
+        pg.mixer.music.load(r"voc\مات.mp3")
         pg.display.update()
         pg.mixer.music.play()
         time.sleep(2)
@@ -489,7 +492,7 @@ def play_best_ai_move(board, screen):
         running = False
         print(time.time()-start_time)
         return
-
+    
     best_move = find_best_move(board)
     if best_move:
         r_piece = board.piece_at(best_move.to_square)
@@ -498,9 +501,9 @@ def play_best_ai_move(board, screen):
         draw_board(screen)
         draw_pieces(board, screen)
         if r_piece:
-            pg.mixer.music.load("voc\حذف مهره.mp3")
+            pg.mixer.music.load(r"voc\حذف مهره.mp3")
         else:
-            pg.mixer.music.load("voc\گذاشتن مهره.mp3")
+            pg.mixer.music.load(r"voc\گذاشتن مهره.mp3")
         pg.mixer.music.play()
         print(time.time()-start_time)
         
@@ -617,6 +620,8 @@ def main():
                 pg.display.update()
                 pg.mixer.music.play()
                 time.sleep(2)
+                draw_board(screen)
+                draw_pieces(board,screen)
                 c_m_f = True
             elif board.is_stalemate():
                 screen.blit(pg.image.load(rf"pic\stalemate.png"), (0, 0))
@@ -645,8 +650,9 @@ def main():
                         except:
                             continue
                         if s_piece and move in board.legal_moves and s_piece.piece_type == chess.PAWN and (end_square // 8 == 0 or end_square // 8 == 7):
-                            promote_pawn(start_square,end_square,board)
-                        if move in board.legal_moves:
+                            promote_pawn(start_square,end_square,board,screen)
+                            c_m_f = False
+                        elif move in board.legal_moves:
                             r_piece = board.piece_at(end_square)
                             board.push(move)
                             if r_piece:
