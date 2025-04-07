@@ -1,7 +1,7 @@
 import chess
 import pygame as pg
 import time
-import moviepy.editor
+import moviepy
 import tkinter as tk
 
 def draw_board(screen):
@@ -19,10 +19,10 @@ def draw_pieces(board,screen):
             piece = board.piece_at(chess.square(i, 7 - j))
             if piece:
                 if piece.color == chess.WHITE:
-                    piece_image = pg.image.load(rf"pic/{'w'+piece.symbol()}.png")
+                    piece_image = pg.image.load(rf"Chess-engine-with-minimax/pic/{'w'+piece.symbol()}.png")
                     screen.blit(piece_image, (i * 80, j * 80))
                 else:
-                    piece_image = pg.image.load(rf"pic/{'b'+piece.symbol()}.png")
+                    piece_image = pg.image.load(rf"Chess-engine-with-minimax/pic/{'b'+piece.symbol()}.png")
                     screen.blit(piece_image, (i * 80, j * 80))
     pg.display.update()
 
@@ -281,6 +281,7 @@ def evaluate_king_safety(board):
     
     return king_safety_score
 
+
 def evaluate_pawn_structure(board):
     W_connected = 10
     W_isolated = -15
@@ -360,6 +361,7 @@ def evaluate_pawn_structure(board):
             score -= pawn_structure_score
 
     return score
+
 
 def piece_safety(board):
     """Evaluates the safety of all pieces and returns a safety score."""
@@ -443,6 +445,8 @@ def piece_safety(board):
 
     return safety_score
 
+
+
 def evaluate_piece_mobility(board):
     mobility_score = 0
     for piece in board.piece_map().values():
@@ -468,6 +472,8 @@ def evaluate_passed_pawns(board):
     
     return passed_pawn_score
 
+
+
 def determine_game_phase(board):
     """Determines the phase of the game: opening, middlegame, or endgame."""
     piece_count = len(board.pieces(chess.PAWN, chess.WHITE)) + len(board.pieces(chess.PAWN, chess.BLACK)) \
@@ -483,6 +489,8 @@ def determine_game_phase(board):
         return "middlegame"
     else:
         return "endgame"
+
+
         
 def evaluate_board(board):
     score = 0
@@ -505,6 +513,8 @@ def evaluate_board(board):
         score += 1.2 * evaluate_passed_pawns(board)  # Passed pawns are critical in the endgame
     return score
 
+
+
 def piece_value(piece):
     """Return the value of the piece based on its type."""
     if piece is None:
@@ -523,83 +533,146 @@ def piece_value(piece):
         return 1000  # King is critical
     return 0
 
-def evaluate_move(move, board):
-    """Evaluate the move based on its potential value, including if it puts a piece in danger."""
-    score = 0
-    
-    # 1. Check if the move is a capture
-    if board.is_capture(move):
-        captured_piece = board.piece_at(move.to_square)
-        score += piece_value(captured_piece)  # Reward for capturing a piece
-    
-    # 2. Check if the move puts the piece in danger (i.e., the square is attacked by the opponent)
-    opponent_color = chess.BLACK if board.turn == chess.WHITE else chess.WHITE  # Determine the opponent's color
-    if board.is_attacked_by(opponent_color, move.to_square):  # Check if the opponent can attack the square
-        score -= 10  # Penalize for putting the piece in danger
-    
-    # 3. Check if the move helps in defense (i.e., if the player is defending the target square)
-    defending_pieces = []
-    # Iterate over all pieces of the current player
-    for piece in board.pieces(chess.PAWN, board.turn):  # Iterate over pawns first
-        for legal_move in board.legal_moves:
-            if legal_move.from_square == piece and legal_move.to_square == move.to_square:
-                defending_pieces.append(piece)
-    
-    for piece in board.pieces(chess.KNIGHT, board.turn):  # Repeat for other piece types
-        for legal_move in board.legal_moves:
-            if legal_move.from_square == piece and legal_move.to_square == move.to_square:
-                defending_pieces.append(piece)
-                
-    for piece in board.pieces(chess.BISHOP, board.turn):
-        for legal_move in board.legal_moves:
-            if legal_move.from_square == piece and legal_move.to_square == move.to_square:
-                defending_pieces.append(piece)
-    
-    for piece in board.pieces(chess.ROOK, board.turn):
-        for legal_move in board.legal_moves:
-            if legal_move.from_square == piece and legal_move.to_square == move.to_square:
-                defending_pieces.append(piece)
-    
-    for piece in board.pieces(chess.QUEEN, board.turn):
-        for legal_move in board.legal_moves:
-            if legal_move.from_square == piece and legal_move.to_square == move.to_square:
-                defending_pieces.append(piece)
 
-    if defending_pieces:
-        score += 5  # Reward if the move defends an important piece
+
+def evaluate_move(move, board):
+    """
+    Evaluates a move based on:
+    - Captures (reward taking higher-value pieces)
+    - Promotions (prioritize queening)
+    - Checks (pressure opponent's king)
+    - Piece safety (penalize moving into attacks)
+    - Center control (reward central squares)
+    - Pawn structure (penalize isolated/doubled pawns)
+    - King safety (reward castling, penalize exposed kings)
+    """
+    score = 0
+    piece = board.piece_at(move.from_square)
+    if not piece:
+        return 0  # Invalid move
+
+    # Material values (adjust as needed)
+    PIECE_VALUES = {
+        chess.PAWN: 1,
+        chess.KNIGHT: 3,
+        chess.BISHOP: 3.5,
+        chess.ROOK: 5,
+        chess.QUEEN: 9,
+        chess.KING: 0  # King cannot be captured
+    }
+
+    # --- 1. CAPTURES (Most important) ---
+    if board.is_capture(move):
+        victim = board.piece_at(move.to_square)
+        if victim:
+            # Reward capturing higher-value pieces
+            score += 10 * PIECE_VALUES[victim.piece_type]
+            
+            # Bonus for capturing with a lower-value piece (e.g., pawn takes queen)
+            if PIECE_VALUES[piece.piece_type] < PIECE_VALUES[victim.piece_type]:
+                score += 5 * (PIECE_VALUES[victim.piece_type] - PIECE_VALUES[piece.piece_type])
+
+    # --- 2. PROMOTIONS ---
+    if move.promotion:
+        promoted_value = PIECE_VALUES[move.promotion]
+        score += 15 * promoted_value  # Prioritize promotions
+
+    # --- 3. CHECKS ---
+    board.push(move)
+    if board.is_check():
+        score += 5  # Base check bonus
+        if board.is_checkmate():
+            score += 1000  # Instant win
+    board.pop()
+
+    # --- 4. PIECE SAFETY ---
+    opponent_color = chess.BLACK if piece.color == chess.WHITE else chess.WHITE
+    if board.is_attacked_by(opponent_color, move.to_square):
+        # Penalize moving into attacks (scaled by piece value)
+        score -= 3 * PIECE_VALUES[piece.piece_type]
+    
+    # Bonus if the square is defended by our pieces
+    if board.is_attacked_by(piece.color, move.to_square):
+        score += 2 * PIECE_VALUES[piece.piece_type]
+
+    # --- 5. POSITIONAL BONUSES ---
+    # Center control (D4/D5/E4/E5)
+    CENTER_SQUARES = {chess.D4, chess.D5, chess.E4, chess.E5}
+    if move.to_square in CENTER_SQUARES:
+        score += 3 if piece.piece_type != chess.KING else -2  # Kings avoid center early
+
+    # Pawn structure penalties
+    if piece.piece_type == chess.PAWN:
+        file = chess.square_file(move.to_square)
+        # Penalize doubled pawns
+        pawns_on_file = len(board.pieces(chess.PAWN, piece.color)) & (1 << file)
+        if pawns_on_file >= 2:
+            score -= 4
+        
+        # Reward passed pawns
+        is_passed = True
+        for f in [file - 1, file, file + 1]:
+            if f < 0 or f > 7:
+                continue
+            enemy_pawns = board.pieces(chess.PAWN, not piece.color) & chess.BB_FILES[f]
+            if enemy_pawns:
+                is_passed = False
+                break
+        if is_passed:
+            score += 8
+
+    # --- 6. KING SAFETY ---
+    if piece.piece_type == chess.KING:
+        # Penalize moving king in early game
+        if len(board.pieces(chess.QUEEN, piece.color)) > 0:  # Roughly "opening"
+            score -= 10
+        
+        # Reward castling
+        if not board.has_castling_rights(piece.color):
+            if move.from_square == chess.E1 and move.to_square in [chess.G1, chess.C1]:
+                score += 20
+
+    # --- 7. SPECIAL MOVES ---
+    # En passant bonus
+    if board.is_en_passant(move):
+        score += 5
 
     return score
 
-def minimax(board, depth, alpha, beta, maximizing_player,start_time):
-    if depth == 0 or board.is_game_over():
+
+def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=20):
+    if depth == 0 or board.is_game_over() or (time.time() - start_time > max_time):
         return evaluate_board(board)
 
     legal_moves = list(board.legal_moves)
+    
+    # Sort moves using evaluate_move() for better pruning
+    legal_moves.sort(
+        key=lambda m: evaluate_move(m, board),
+        reverse=maximizing_player  # Best first for maximizer, worst first for minimizer
+    )
+
     if maximizing_player:
         max_eval = float('-inf')
         for move in legal_moves:
-            if time.time()-start_time>100:
-                return max_eval
             board.push(move)
-            eval = minimax(board, depth - 1, alpha, beta, False,start_time)
+            eval = minimax(board, depth - 1, alpha, beta, False, start_time, max_time)
             board.pop()
             max_eval = max(max_eval, eval)
             alpha = max(alpha, eval)
             if beta <= alpha:
-                break  # Beta cut-off
+                break  # Beta cutoff
         return max_eval
     else:
         min_eval = float('inf')
         for move in legal_moves:
-            if time.time()-start_time>100:
-                return min_eval
             board.push(move)
-            eval = minimax(board, depth - 1, alpha, beta, True,start_time)
+            eval = minimax(board, depth - 1, alpha, beta, True, start_time, max_time)
             board.pop()
             min_eval = min(min_eval, eval)
             beta = min(beta, eval)
             if beta <= alpha:
-                break  # Alpha cut-off
+                break  # Alpha cutoff
         return min_eval
 
 def find_best_move(board, depth = 16):
@@ -608,8 +681,6 @@ def find_best_move(board, depth = 16):
     best_score = float('-inf')
     legal_moves = list(board.legal_moves)
     for move in legal_moves:
-        if time.time()-start_time>100:
-            break
         board.push(move)
         move_score = minimax(board, depth - 1, float('-inf'), float('inf'), False,start_time)
         board.pop()
@@ -618,8 +689,10 @@ def find_best_move(board, depth = 16):
             best_move = move
     return best_move
 
+
+
 def play_best_ai_move(board, screen):
-    starttime = time.time()
+    """Play the best AI move."""
     c_m_f = False
     global running
     
@@ -629,20 +702,20 @@ def play_best_ai_move(board, screen):
             for j in range(8):
                 piece = board.piece_at(chess.square(i, 7 - j))
                 if piece and piece.piece_type == chess.KING and piece.color == board.turn:
-                    screen.blit(pg.image.load(r"pic/check_block.png"), (i * 80, j * 80))
-                    pg.mixer.music.load(r"voc/مات.mp3")
+                    screen.blit(pg.image.load(r"Chess-engine-with-minimax/pic/check_block.png"), (i * 80, j * 80))
+                    pg.mixer.music.load(r"Chess-engine-with-minimax/voc/مات.mp3")
                     pg.display.update()
                     pg.mixer.music.play()
                     time.sleep(2)
 
         pg.display.set_caption('Checkmate!')
-        clip = moviepy.editor.VideoFileClip(r'voc/checkmate.mp4')
+        clip = moviepy.editor.VideoFileClip(r'Chess-engine-with-minimax/voc/checkmate.mp4')
         clip.preview()
 
         pg.quit()
         screen = pg.display.set_mode((640, 640))
         pg.display.set_caption('Game Over!')
-        screen.blit(pg.image.load(rf"pic/{color}_lost.png"), (0, 0))
+        screen.blit(pg.image.load(rf"Chess-engine-with-minimax/pic/{color}_lost.png"), (0, 0))
         pg.display.update()
         time.sleep(1)
         root = tk.Tk()
@@ -658,7 +731,6 @@ def play_best_ai_move(board, screen):
         root.mainloop()
         
         running = False
-        print(time.time() - starttime)
         return
     
     best_move = find_best_move(board)
@@ -669,9 +741,9 @@ def play_best_ai_move(board, screen):
         draw_board(screen)
         draw_pieces(board, screen)
         if r_piece:
-            pg.mixer.music.load(r"voc/حذف مهره.mp3")
+            pg.mixer.music.load(r"Chess-engine-with-minimax/voc/حذف مهره.mp3")
         else:
-            pg.mixer.music.load(r"voc/گذاشتن مهره.mp3")
+            pg.mixer.music.load(r"Chess-engine-with-minimax/voc/گذاشتن مهره.mp3")
         pg.mixer.music.play()
 
 def value(board, is_maximizing):
@@ -711,6 +783,7 @@ def min_value(board):
         min_eval = min(min_eval, eval)
     return min_eval
 
+
 def play_again(root):
     def inner():
         root.destroy()
@@ -721,8 +794,8 @@ def main():
     pg.init()
     screen = pg.display.set_mode((640, 640))
     pg.display.set_caption("Chess")
-    pg.mixer.music.load(r"voc/war_horn_3.mp3")
-    screen.blit(pg.image.load(r"pic/welcome_page.png"), (0, 0))
+    pg.mixer.music.load(r"Chess-engine-with-minimax/voc/war_horn_3.mp3")
+    screen.blit(pg.image.load(r"Chess-engine-with-minimax/pic/welcome_page.png"), (0, 0))
     pg.display.update()
     pg.mixer.music.play()
     time.sleep(2)
@@ -742,8 +815,8 @@ def main():
                     for j in range(8):
                         piece = board.piece_at(chess.square(i, 7 - j))
                         if piece and piece.piece_type == chess.KING and piece.color == board.turn:
-                            screen.blit(pg.image.load(r"pic/check_block.png"), (i * 80, j * 80))
-                            pg.mixer.music.load(r"voc/مات.mp3")
+                            screen.blit(pg.image.load(r"Chess-engine-with-minimax/pic/check_block.png"), (i * 80, j * 80))
+                            pg.mixer.music.load(r"Chess-engine-with-minimax/voc/مات.mp3")
                             pg.display.update()
                             pg.mixer.music.play()
                             time.sleep(2)
@@ -754,7 +827,7 @@ def main():
                 pg.quit()
                 screen = pg.display.set_mode((640, 640))
                 pg.display.set_caption('Game Over!')
-                screen.blit(pg.image.load(rf"pic/{color}_lost.png"), (0, 0))
+                screen.blit(pg.image.load(rf"Chess-engine-with-minimax/pic/{color}_lost.png"), (0, 0))
                 pg.display.update()
                 time.sleep(1)
 
@@ -778,8 +851,8 @@ def main():
                 pg.display.update()
                 time.sleep(1.5)
                 color = 'black' if board.turn == chess.BLACK else 'white'
-                screen.blit(pg.image.load(rf"pic/{color}_king_is_in_check.png"), (0, 0))
-                pg.mixer.music.load(r"voc/کیش.mp3")
+                screen.blit(pg.image.load(rf"Chess-engine-with-minimax/pic/{color}_king_is_in_check.png"), (0, 0))
+                pg.mixer.music.load(r"Chess-engine-with-minimax/voc/کیش.mp3")
                 pg.display.update()
                 pg.mixer.music.play()
                 time.sleep(2)
@@ -788,7 +861,7 @@ def main():
                 c_m_f = True
 
             elif board.is_stalemate():
-                screen.blit(pg.image.load(rf"pic/stalemate.png"), (0, 0))
+                screen.blit(pg.image.load(rf"Chess-engine-with-minimax/pic/stalemate.png"), (0, 0))
                 pg.display.update()
                 time.sleep(1)
                 running = False
@@ -823,10 +896,10 @@ def main():
                             r_piece = board.piece_at(end_square)
                             board.push(move)
                             if r_piece:
-                                pg.mixer.music.load(r"voc/حذف مهره.mp3")
+                                pg.mixer.music.load(r"Chess-engine-with-minimax/voc/حذف مهره.mp3")
                                 pg.mixer.music.play()
                             else:
-                                pg.mixer.music.load(r"voc/گذاشتن مهره.mp3")
+                                pg.mixer.music.load(r"Chess-engine-with-minimax/voc/گذاشتن مهره.mp3")
                                 pg.mixer.music.play()
                             c_m_f = False
                             draw_board(screen)
@@ -837,5 +910,6 @@ def main():
 
     pg.quit()
 
+    
 if __name__ == "__main__":
     main()
