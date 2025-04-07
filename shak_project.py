@@ -1,7 +1,7 @@
 import chess
 import pygame as pg
 import time
-import moviepy
+import moviepy.editor
 import tkinter as tk
 
 def draw_board(screen):
@@ -281,7 +281,6 @@ def evaluate_king_safety(board):
     
     return king_safety_score
 
-
 def evaluate_pawn_structure(board):
     W_connected = 10
     W_isolated = -15
@@ -361,7 +360,6 @@ def evaluate_pawn_structure(board):
             score -= pawn_structure_score
 
     return score
-
 
 def piece_safety(board):
     """Evaluates the safety of all pieces and returns a safety score."""
@@ -445,8 +443,6 @@ def piece_safety(board):
 
     return safety_score
 
-
-
 def evaluate_piece_mobility(board):
     mobility_score = 0
     for piece in board.piece_map().values():
@@ -472,8 +468,6 @@ def evaluate_passed_pawns(board):
     
     return passed_pawn_score
 
-
-
 def determine_game_phase(board):
     """Determines the phase of the game: opening, middlegame, or endgame."""
     piece_count = len(board.pieces(chess.PAWN, chess.WHITE)) + len(board.pieces(chess.PAWN, chess.BLACK)) \
@@ -489,8 +483,6 @@ def determine_game_phase(board):
         return "middlegame"
     else:
         return "endgame"
-
-
         
 def evaluate_board(board):
     score = 0
@@ -513,8 +505,6 @@ def evaluate_board(board):
         score += 1.2 * evaluate_passed_pawns(board)  # Passed pawns are critical in the endgame
     return score
 
-
-
 def piece_value(piece):
     """Return the value of the piece based on its type."""
     if piece is None:
@@ -532,8 +522,6 @@ def piece_value(piece):
     elif piece.piece_type == chess.KING:
         return 1000  # King is critical
     return 0
-
-
 
 def evaluate_move(move, board):
     """Evaluate the move based on its potential value, including if it puts a piece in danger."""
@@ -582,17 +570,7 @@ def evaluate_move(move, board):
 
     return score
 
-
-
-
-
-
-
-
-def minimax(board, depth, alpha, beta, maximizing_player):
-    """
-    Perform the Minimax algorithm with alpha-beta pruning to determine the best move.
-    """
+def minimax(board, depth, alpha, beta, maximizing_player,start_time):
     if depth == 0 or board.is_game_over():
         return evaluate_board(board)
 
@@ -600,8 +578,10 @@ def minimax(board, depth, alpha, beta, maximizing_player):
     if maximizing_player:
         max_eval = float('-inf')
         for move in legal_moves:
+            if time.time()-start_time>100:
+                return max_eval
             board.push(move)
-            eval = minimax(board, depth - 1, alpha, beta, False)
+            eval = minimax(board, depth - 1, alpha, beta, False,start_time)
             board.pop()
             max_eval = max(max_eval, eval)
             alpha = max(alpha, eval)
@@ -611,8 +591,10 @@ def minimax(board, depth, alpha, beta, maximizing_player):
     else:
         min_eval = float('inf')
         for move in legal_moves:
+            if time.time()-start_time>100:
+                return min_eval
             board.push(move)
-            eval = minimax(board, depth - 1, alpha, beta, True)
+            eval = minimax(board, depth - 1, alpha, beta, True,start_time)
             board.pop()
             min_eval = min(min_eval, eval)
             beta = min(beta, eval)
@@ -620,27 +602,24 @@ def minimax(board, depth, alpha, beta, maximizing_player):
                 break  # Alpha cut-off
         return min_eval
 
-def find_best_move(board, depth = 3):
-    """
-    Find the best move for the AI using the Minimax algorithm.
-    """
+def find_best_move(board, depth = 16):
+    start_time = time.time()
     best_move = None
     best_score = float('-inf')
     legal_moves = list(board.legal_moves)
     for move in legal_moves:
+        if time.time()-start_time>100:
+            break
         board.push(move)
-        move_score = minimax(board, depth - 1, float('-inf'), float('inf'), False)
+        move_score = minimax(board, depth - 1, float('-inf'), float('inf'), False,start_time)
         board.pop()
         if move_score > best_score:
             best_score = move_score
             best_move = move
     return best_move
 
-
-
 def play_best_ai_move(board, screen):
-    """Play the best AI move."""
-    start_time = time.time()
+    starttime = time.time()
     c_m_f = False
     global running
     
@@ -679,7 +658,7 @@ def play_best_ai_move(board, screen):
         root.mainloop()
         
         running = False
-        print(time.time() - start_time)
+        print(time.time() - starttime)
         return
     
     best_move = find_best_move(board)
@@ -731,7 +710,6 @@ def min_value(board):
         board.pop()
         min_eval = min(min_eval, eval)
     return min_eval
-
 
 def play_again(root):
     def inner():
@@ -859,6 +837,5 @@ def main():
 
     pg.quit()
 
-    
 if __name__ == "__main__":
     main()
