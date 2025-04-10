@@ -859,7 +859,6 @@ def main():
                 pg.display.update()
                 time.sleep(1.5)
                 color = 'black' if board.turn == chess.BLACK else 'white'
-                print('hi')
                 screen.blit(pg.image.load(rf"pic/{color}_king_is_in_check.png"), (0, 0))
                 pg.mixer.music.load(r"voc/کیش.mp3")
                 pg.display.update()
@@ -882,7 +881,6 @@ def main():
                 if counter % 2 == 0:
                     x_s, y_s = pg.mouse.get_pos()
                     piece = board.piece_at(chess.square(x_s // 80, 7 - (y_s // 80)))
-                    print(piece)
                     for move in board.legal_moves:
                         if move.from_square == chess.square(x_s // 80, 7 - (y_s // 80)):
                             if board.piece_at(move.to_square):
