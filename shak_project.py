@@ -465,80 +465,13 @@ def piece_value(piece):
         return 1000
     return 0
 
-def evaluate_move(move, board):
-    score = 0
-    piece = board.piece_at(move.from_square)
-    if not piece:
-        return 0 
-    PIECE_VALUES = {
-        chess.PAWN: 1,
-        chess.KNIGHT: 3,
-        chess.BISHOP: 3.5,
-        chess.ROOK: 5,
-        chess.QUEEN: 9,
-        chess.KING: 0
-    }
-    if board.is_capture(move):
-        victim = board.piece_at(move.to_square)
-        if victim:
-            score += 10 * PIECE_VALUES[victim.piece_type]
-            if PIECE_VALUES[piece.piece_type] < PIECE_VALUES[victim.piece_type]:
-                score += 5 * (PIECE_VALUES[victim.piece_type] - PIECE_VALUES[piece.piece_type])
-    if move.promotion:
-        promoted_value = PIECE_VALUES[move.promotion]
-        score += 15 * promoted_value
-    board.push(move)
-    if board.is_check():
-        score += 5
-        if board.is_checkmate():
-            score += 1000
-    board.pop()
-    opponent_color = chess.BLACK if piece.color == chess.WHITE else chess.WHITE
-    if board.is_attacked_by(opponent_color, move.to_square):
-        score -= 3 * PIECE_VALUES[piece.piece_type]
-    if board.is_attacked_by(piece.color, move.to_square):
-        score += 2 * PIECE_VALUES[piece.piece_type]
-    CENTER_SQUARES = {chess.D4, chess.D5, chess.E4, chess.E5}
-    if move.to_square in CENTER_SQUARES:
-        score += 3 if piece.piece_type != chess.KING else -2
-    if piece.piece_type == chess.PAWN:
-        file = chess.square_file(move.to_square)
-        pawns_on_file = len(board.pieces(chess.PAWN, piece.color)) & (1 << file)
-        if pawns_on_file >= 2:
-            score -= 4
-        is_passed = True
-        for f in [file - 1, file, file + 1]:
-            if f < 0 or f > 7:
-                continue
-            enemy_pawns = board.pieces(chess.PAWN, not piece.color) & chess.BB_FILES[f]
-            if enemy_pawns:
-                is_passed = False
-                break
-        if is_passed:
-            score += 8
-    if piece.piece_type == chess.KING:
-        if len(board.pieces(chess.QUEEN, piece.color)) > 0:
-            score -= 10
-        if not board.has_castling_rights(piece.color):
-            if move.from_square == chess.E1 and move.to_square in [chess.G1, chess.C1]:
-                score += 20
-    if board.is_en_passant(move):
-        score += 5
-    return score
-
 def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=20):
     if depth == 0 or board.is_game_over() or (time() - start_time > max_time):
         return evaluate_board(board)
 
-    legal_moves = list(board.legal_moves)
-    legal_moves.sort(
-        key=lambda m: evaluate_move(m, board),
-        reverse=maximizing_player
-    )
-
     if maximizing_player:
         max_eval = float('-inf')
-        for move in legal_moves:
+        for move in board.legal_moves:
             board.push(move)
             eval = minimax(board, depth - 1, alpha, beta, False, start_time, max_time)
             board.pop()
@@ -549,7 +482,7 @@ def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=2
         return max_eval
     else:
         min_eval = float('inf')
-        for move in legal_moves:
+        for move in board.legal_moves:
             board.push(move)
             eval = minimax(board, depth - 1, alpha, beta, True, start_time, max_time)
             board.pop()
