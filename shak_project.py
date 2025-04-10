@@ -1,7 +1,7 @@
 import chess
 import pygame as pg
-import time
-import moviepy.editor
+from time import time, sleep
+from moviepy.editor import VideoFileClip
 import tkinter as tk
 
 def draw_board(screen):
@@ -263,35 +263,27 @@ def center_control(board):
 
 def evaluate_king_safety(board):
     king_safety_score = 0
-    king_square = board.king(board.turn)  # Get the king's position
-    
-    # Check surrounding squares (8 squares around the king)
+    king_square = board.king(board.turn)
     for square in chess.SQUARES:
-        if chess.square_distance(king_square, square) <= 1:  # Check neighboring squares
+        if chess.square_distance(king_square, square) <= 1:
             piece = board.piece_at(square)
             if piece and piece.color == board.turn:
-                king_safety_score += 1  # Count protected squares
-
-    # Penalize for exposed kings (opponent's pieces near the king)
+                king_safety_score += 1
     for square in chess.SQUARES:
         if chess.square_distance(king_square, square) <= 1:
             piece = board.piece_at(square)
             if piece and piece.color != board.turn:
-                king_safety_score -= 1  # Penalize for opponent's influence around the king
-    
+                king_safety_score -= 1
     return king_safety_score
-
 
 def evaluate_pawn_structure(board):
     W_connected = 10
     W_isolated = -15
     W_doubled = -20
     W_advanced = 5
-    W_backward = -10  # Penalize for backward pawns
-    W_hanging = -5    # Penalize for hanging pawns
-
+    W_backward = -10
+    W_hanging = -5
     score = 0
-
     for color in [chess.WHITE, chess.BLACK]:
         pawn_files = {}
         isolated_pawns = 0
@@ -300,33 +292,25 @@ def evaluate_pawn_structure(board):
         advanced_pawns = 0
         backward_pawns = 0
         hanging_pawns = 0
-
         for square in chess.SQUARES:
             piece = board.piece_at(square)
             if piece and piece.piece_type == chess.PAWN and piece.color == color:
                 file_index = chess.square_file(square)
                 rank_index = chess.square_rank(square)
-
                 if file_index in pawn_files:
                     pawn_files[file_index].append(rank_index)
                 else:
                     pawn_files[file_index] = [rank_index]
-
                 if (color == chess.WHITE and rank_index >= 4) or (color == chess.BLACK and rank_index <= 3):
                     advanced_pawns += 1
-
         for file_index, ranks in pawn_files.items():
             ranks.sort()
             if len(ranks) > 1:
                 doubled_pawns += (len(ranks) - 1)
-
             if (file_index - 1 not in pawn_files) and (file_index + 1 not in pawn_files):
                 isolated_pawns += len(ranks)
-
             if (file_index - 1 in pawn_files or file_index + 1 in pawn_files):
                 connected_pawns += len(ranks)
-
-            # Detect backward pawns (pawns on an open file, unable to advance)
             if color == chess.WHITE:
                 for rank in ranks:
                     if rank < 5:
@@ -335,8 +319,6 @@ def evaluate_pawn_structure(board):
                 for rank in ranks:
                     if rank > 3:
                         backward_pawns += 1
-
-            # Detect hanging pawns (pawns not supported by another pawn)
             if color == chess.WHITE:
                 for rank in ranks:
                     if not board.piece_at(chess.square(file_index - 1, rank)) and not board.piece_at(chess.square(file_index + 1, rank)):
@@ -345,7 +327,6 @@ def evaluate_pawn_structure(board):
                 for rank in ranks:
                     if not board.piece_at(chess.square(file_index - 1, rank)) and not board.piece_at(chess.square(file_index + 1, rank)):
                         hanging_pawns += 1
-
         pawn_structure_score = (
             (connected_pawns * W_connected) -
             (isolated_pawns * W_isolated) -
@@ -354,17 +335,13 @@ def evaluate_pawn_structure(board):
             (backward_pawns * W_backward) -
             (hanging_pawns * W_hanging)
         )
-
         if color == chess.WHITE:
             score += pawn_structure_score
         else:
             score -= pawn_structure_score
-
     return score
 
-
 def piece_safety(board):
-    """Evaluates the safety of all pieces and returns a safety score."""
     safety_score = 0
     piece_values = {
         chess.PAWN: 1,
@@ -372,117 +349,81 @@ def piece_safety(board):
         chess.BISHOP: 3,
         chess.ROOK: 5,
         chess.QUEEN: 9,
-        chess.KING: 1000  # King has high value as it cannot be captured
+        chess.KING: 1000
     }
     
     def is_under_attack(board, square, color):
-        """Returns True if the square is under attack by the opponent."""
         opponent_color = chess.WHITE if color == chess.BLACK else chess.BLACK
         return board.is_attacked_by(opponent_color, square)
 
     def is_defended(board, square, color):
-        """Returns True if the piece is defended by another piece of the same color."""
         for move in board.legal_moves:
             if move.to_square == square and board.piece_at(move.from_square).color == color:
                 return True
         return False
-
-    # Evaluate each piece on the board
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece is None:
             continue
-
         color = piece.color
         value = piece_values.get(piece.piece_type, 0)
-        
-        # Check if the piece is under attack
         under_attack = is_under_attack(board, square, color)
-        
-        # Safety for the King: King's safety is paramount.
         if piece.piece_type == chess.KING:
             if under_attack:
-                safety_score -= 50  # Severe penalty if the King is under attack
+                safety_score -= 50
             else:
-                safety_score += 50  # Reward if the King is safe
-                
-        # Check for piece exposure and mobility
+                safety_score += 50
         if piece.piece_type in [chess.PAWN, chess.KNIGHT, chess.BISHOP, chess.ROOK, chess.QUEEN]:
-            # A piece is considered "exposed" if it is not defended by another piece
             if not is_defended(board, square, color) and under_attack:
-                # Penalize for an exposed piece under attack
-                safety_score -= value * 2  # Higher penalty for exposed pieces
-                
-            # High-value pieces (like Queen, Rook) should be more cautious in the middle game
+                safety_score -= value * 2
             if piece.piece_type in [chess.QUEEN, chess.ROOK]:
                 if under_attack:
-                    safety_score -= value * 1.5  # High-value pieces under attack are highly penalized
+                    safety_score -= value * 1.5
             elif piece.piece_type == chess.PAWN:
-                # Pawns are safer when they are supported by another pawn or piece
                 if under_attack and not is_defended(board, square, color):
-                    safety_score -= value * 1.5  # Penalize for isolated pawns being attacked
-
-        # Add score for unthreatened piece positions
+                    safety_score -= value * 1.5
         if not under_attack:
             if piece.piece_type == chess.PAWN:
-                # Pawns are usually safest in the back ranks or behind other pawns
-                if 8 <= square <= 15:  # Back-rank pawns
-                    safety_score += value  # Reward back-rank pawns
-                elif square % 8 == 0 or (square + 1) % 8 == 0:  # Pawns on the edges
-                    safety_score += value * 0.5  # Penalize edge pawns slightly
-
+                if 8 <= square <= 15:
+                    safety_score += value
+                elif square % 8 == 0 or (square + 1) % 8 == 0:
+                    safety_score += value * 0.5
             elif piece.piece_type == chess.KNIGHT:
-                # Knights are safer when they are near the center or protected
-                if square in [27, 28, 35, 36]:  # Central squares for knights
+                if square in [27, 28, 35, 36]:
                     safety_score += value * 1.2
                 else:
                     safety_score += value * 0.8
-            
-            # Rooks and queens are safer in more controlled positions, especially near the center
             elif piece.piece_type in [chess.ROOK, chess.QUEEN]:
-                if 27 <= square <= 36:  # Central area
-                    safety_score += value * 1.1  # Reward central placement for rooks/queens
-
+                if 27 <= square <= 36:
+                    safety_score += value * 1.1
     return safety_score
-
-
 
 def evaluate_piece_mobility(board):
     mobility_score = 0
     for piece in board.piece_map().values():
-        if piece.color == board.turn:  # Evaluate only for the current player's pieces
-            mobility_score += len(list(board.legal_moves))  # Count legal moves
+        if piece.color == board.turn:
+            mobility_score += len(list(board.legal_moves))
     return mobility_score
 
 def evaluate_passed_pawns(board):
     passed_pawn_score = 0
     for square in board.pieces(chess.PAWN, board.turn):
-        # Check if it's a passed pawn (no opponent pawns on its file or adjacent files)
         file = chess.square_file(square)
         rank = chess.square_rank(square)
-        
         if board.turn == chess.WHITE:
-            # For white, we check if there are no black pawns on the same file or adjacent files
             if not board.piece_at(chess.square(file, rank + 1)) and not board.piece_at(chess.square(file - 1, rank + 1)) and not board.piece_at(chess.square(file + 1, rank + 1)):
-                passed_pawn_score += 1  # Give value to the passed pawn
+                passed_pawn_score += 1
         else:
-            # For black, we check if there are no white pawns on the same file or adjacent files
             if not board.piece_at(chess.square(file, rank - 1)) and not board.piece_at(chess.square(file - 1, rank - 1)) and not board.piece_at(chess.square(file + 1, rank - 1)):
-                passed_pawn_score += 1  # Give value to the passed pawn
-    
+                passed_pawn_score += 1
     return passed_pawn_score
 
-
-
 def determine_game_phase(board):
-    """Determines the phase of the game: opening, middlegame, or endgame."""
     piece_count = len(board.pieces(chess.PAWN, chess.WHITE)) + len(board.pieces(chess.PAWN, chess.BLACK)) \
                 + len(board.pieces(chess.KNIGHT, chess.WHITE)) + len(board.pieces(chess.KNIGHT, chess.BLACK)) \
                 + len(board.pieces(chess.BISHOP, chess.WHITE)) + len(board.pieces(chess.BISHOP, chess.BLACK)) \
                 + len(board.pieces(chess.ROOK, chess.WHITE)) + len(board.pieces(chess.ROOK, chess.BLACK)) \
                 + len(board.pieces(chess.QUEEN, chess.WHITE)) + len(board.pieces(chess.QUEEN, chess.BLACK))
-
-    # More pieces on the board means opening/middlegame, fewer pieces indicate endgame
     if piece_count > 16:
         return "opening"
     elif piece_count > 8:
@@ -490,126 +431,81 @@ def determine_game_phase(board):
     else:
         return "endgame"
 
-
-        
 def evaluate_board(board):
     score = 0
-    phase = determine_game_phase(board)  # Determine if it's opening, midgame, or endgame
+    phase = determine_game_phase(board)
 
     if phase == 'opening':
-        score += 1.5 * piece_values_checker(board)  # More importance to piece value in the opening
+        score += 1.5 * piece_values_checker(board)
         score += 1.0 * piece_safety(board)
         score += 0.8 * piece_position_value(board)
         score += 1.0 * center_control(board)
     elif phase == 'midgame':
-        score += 1.2 * piece_values_checker(board)  # Balanced evaluation for midgame
+        score += 1.2 * piece_values_checker(board)
         score += 1.0 * piece_safety(board)
         score += 1.0 * piece_position_value(board)
         score += 0.7 * center_control(board)
-    else:  # endgame
-        score += 1.0 * piece_values_checker(board)  # Fewer pieces on the board, so value is different
+    else:
+        score += 1.0 * piece_values_checker(board)
         score += 0.8 * piece_safety(board)
-        score += 0.6 * evaluate_king_safety(board)  # King safety becomes more critical in the endgame
-        score += 1.2 * evaluate_passed_pawns(board)  # Passed pawns are critical in the endgame
+        score += 0.6 * evaluate_king_safety(board)
+        score += 1.2 * evaluate_passed_pawns(board)
     return score
 
-
-
 def piece_value(piece):
-    """Return the value of the piece based on its type."""
-    if piece is None:
-        return 0
     if piece.piece_type == chess.PAWN:
         return 1
-    elif piece.piece_type == chess.KNIGHT:
-        return 3
-    elif piece.piece_type == chess.BISHOP:
+    elif piece.piece_type == chess.KNIGHT or piece.piece_type == chess.BISHOP:
         return 3
     elif piece.piece_type == chess.ROOK:
         return 5
     elif piece.piece_type == chess.QUEEN:
         return 9
     elif piece.piece_type == chess.KING:
-        return 1000  # King is critical
+        return 1000
     return 0
 
-
-
 def evaluate_move(move, board):
-    """
-    Evaluates a move based on:
-    - Captures (reward taking higher-value pieces)
-    - Promotions (prioritize queening)
-    - Checks (pressure opponent's king)
-    - Piece safety (penalize moving into attacks)
-    - Center control (reward central squares)
-    - Pawn structure (penalize isolated/doubled pawns)
-    - King safety (reward castling, penalize exposed kings)
-    """
     score = 0
     piece = board.piece_at(move.from_square)
     if not piece:
-        return 0  # Invalid move
-
-    # Material values (adjust as needed)
+        return 0 
     PIECE_VALUES = {
         chess.PAWN: 1,
         chess.KNIGHT: 3,
         chess.BISHOP: 3.5,
         chess.ROOK: 5,
         chess.QUEEN: 9,
-        chess.KING: 0  # King cannot be captured
+        chess.KING: 0
     }
-
-    # --- 1. CAPTURES (Most important) ---
     if board.is_capture(move):
         victim = board.piece_at(move.to_square)
         if victim:
-            # Reward capturing higher-value pieces
             score += 10 * PIECE_VALUES[victim.piece_type]
-            
-            # Bonus for capturing with a lower-value piece (e.g., pawn takes queen)
             if PIECE_VALUES[piece.piece_type] < PIECE_VALUES[victim.piece_type]:
                 score += 5 * (PIECE_VALUES[victim.piece_type] - PIECE_VALUES[piece.piece_type])
-
-    # --- 2. PROMOTIONS ---
     if move.promotion:
         promoted_value = PIECE_VALUES[move.promotion]
-        score += 15 * promoted_value  # Prioritize promotions
-
-    # --- 3. CHECKS ---
+        score += 15 * promoted_value
     board.push(move)
     if board.is_check():
-        score += 5  # Base check bonus
+        score += 5
         if board.is_checkmate():
-            score += 1000  # Instant win
+            score += 1000
     board.pop()
-
-    # --- 4. PIECE SAFETY ---
     opponent_color = chess.BLACK if piece.color == chess.WHITE else chess.WHITE
     if board.is_attacked_by(opponent_color, move.to_square):
-        # Penalize moving into attacks (scaled by piece value)
         score -= 3 * PIECE_VALUES[piece.piece_type]
-    
-    # Bonus if the square is defended by our pieces
     if board.is_attacked_by(piece.color, move.to_square):
         score += 2 * PIECE_VALUES[piece.piece_type]
-
-    # --- 5. POSITIONAL BONUSES ---
-    # Center control (D4/D5/E4/E5)
     CENTER_SQUARES = {chess.D4, chess.D5, chess.E4, chess.E5}
     if move.to_square in CENTER_SQUARES:
-        score += 3 if piece.piece_type != chess.KING else -2  # Kings avoid center early
-
-    # Pawn structure penalties
+        score += 3 if piece.piece_type != chess.KING else -2
     if piece.piece_type == chess.PAWN:
         file = chess.square_file(move.to_square)
-        # Penalize doubled pawns
         pawns_on_file = len(board.pieces(chess.PAWN, piece.color)) & (1 << file)
         if pawns_on_file >= 2:
             score -= 4
-        
-        # Reward passed pawns
         is_passed = True
         for f in [file - 1, file, file + 1]:
             if f < 0 or f > 7:
@@ -620,36 +516,24 @@ def evaluate_move(move, board):
                 break
         if is_passed:
             score += 8
-
-    # --- 6. KING SAFETY ---
     if piece.piece_type == chess.KING:
-        # Penalize moving king in early game
-        if len(board.pieces(chess.QUEEN, piece.color)) > 0:  # Roughly "opening"
+        if len(board.pieces(chess.QUEEN, piece.color)) > 0:
             score -= 10
-        
-        # Reward castling
         if not board.has_castling_rights(piece.color):
             if move.from_square == chess.E1 and move.to_square in [chess.G1, chess.C1]:
                 score += 20
-
-    # --- 7. SPECIAL MOVES ---
-    # En passant bonus
     if board.is_en_passant(move):
         score += 5
-
     return score
 
-
 def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=20):
-    if depth == 0 or board.is_game_over() or (time.time() - start_time > max_time):
+    if depth == 0 or board.is_game_over() or (time() - start_time > max_time):
         return evaluate_board(board)
 
     legal_moves = list(board.legal_moves)
-    
-    # Sort moves using evaluate_move() for better pruning
     legal_moves.sort(
         key=lambda m: evaluate_move(m, board),
-        reverse=maximizing_player  # Best first for maximizer, worst first for minimizer
+        reverse=maximizing_player
     )
 
     if maximizing_player:
@@ -661,7 +545,7 @@ def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=2
             max_eval = max(max_eval, eval)
             alpha = max(alpha, eval)
             if beta <= alpha:
-                break  # Beta cutoff
+                break
         return max_eval
     else:
         min_eval = float('inf')
@@ -672,11 +556,11 @@ def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=2
             min_eval = min(min_eval, eval)
             beta = min(beta, eval)
             if beta <= alpha:
-                break  # Alpha cutoff
+                break
         return min_eval
 
 def find_best_move(board, depth = 16):
-    start_time = time.time()
+    start_time = time()
     best_move = None
     best_score = float('-inf')
     legal_moves = list(board.legal_moves)
@@ -689,10 +573,7 @@ def find_best_move(board, depth = 16):
             best_move = move
     return best_move
 
-
-
 def play_best_ai_move(board, screen):
-    """Play the best AI move."""
     global running
     c_m_f = False
     if board.is_checkmate():
@@ -705,10 +586,10 @@ def play_best_ai_move(board, screen):
                     pg.mixer.music.load(r"voc/مات.mp3")
                     pg.display.update()
                     pg.mixer.music.play()
-                    time.sleep(2)
+                    sleep(2)
                     
         pg.display.set_caption('Checkmate!')
-        clip = moviepy.editor.VideoFileClip(r'voc/checkmate.mp4')
+        clip = VideoFileClip(r'voc/checkmate.mp4')
         clip.preview()
 
         pg.quit()
@@ -716,7 +597,7 @@ def play_best_ai_move(board, screen):
         pg.display.set_caption('Game Over!')
         screen.blit(pg.image.load(rf"pic/{color}_lost.png"), (0, 0))
         pg.display.update()
-        time.sleep(1)
+        sleep(1)
         root = tk.Tk()
         root.title('Play again?')
         root.eval('tk::PlaceWindow . center')
@@ -737,7 +618,7 @@ def play_best_ai_move(board, screen):
         pg.mixer.music.load(r"voc/کیش.mp3")
         pg.display.update()
         pg.mixer.music.play()
-        time.sleep(2)
+        sleep(2)
         draw_board(screen)
         draw_pieces(board, screen)
         c_m_f = True
@@ -757,11 +638,11 @@ def play_best_ai_move(board, screen):
 def value(board, is_maximizing):
     result = board.result()
     if result == "1-0":
-        return -1000  # White wins
+        return evaluate_board(board)
     elif result == "0-1":
-        return 1000  # Black wins
+        return evaluate_board(board)
     elif result == "1/2-1/2":
-        return 0  # Draw
+        return 0
 
     if is_maximizing:
         return max_value(board)
@@ -791,7 +672,6 @@ def min_value(board):
         min_eval = min(min_eval, eval)
     return min_eval
 
-
 def play_again(root):
     def inner():
         root.destroy()
@@ -806,7 +686,7 @@ def main():
     screen.blit(pg.image.load(r"pic/welcome_page.png"), (0, 0))
     pg.display.update()
     pg.mixer.music.play()
-    time.sleep(2)
+    sleep(2)
 
     board = chess.Board()
     running = True
@@ -827,9 +707,9 @@ def main():
                             pg.mixer.music.load(r"voc/مات.mp3")
                             pg.display.update()
                             pg.mixer.music.play()
-                            time.sleep(2)
+                            sleep(2)
                 pg.display.set_caption('Checkmate!')
-                clip = moviepy.editor.VideoFileClip('checkmate.mp4')
+                clip = VideoFileClip('checkmate.mp4')
                 clip.preview()
 
                 pg.quit()
@@ -837,7 +717,7 @@ def main():
                 pg.display.set_caption('Game Over!')
                 screen.blit(pg.image.load(rf"pic/{color}_lost.png"), (0, 0))
                 pg.display.update()
-                time.sleep(1)
+                sleep(1)
 
                 root = tk.Tk()
                 root.title('Play again?')
@@ -857,13 +737,13 @@ def main():
                 draw_board(screen)
                 draw_pieces(board, screen)
                 pg.display.update()
-                time.sleep(1.5)
+                sleep(1.5)
                 color = 'black' if board.turn == chess.BLACK else 'white'
                 screen.blit(pg.image.load(rf"pic/{color}_king_is_in_check.png"), (0, 0))
                 pg.mixer.music.load(r"voc/کیش.mp3")
                 pg.display.update()
                 pg.mixer.music.play()
-                time.sleep(2)
+                sleep(2)
                 draw_board(screen)
                 draw_pieces(board, screen)
                 c_m_f = True
@@ -871,7 +751,7 @@ def main():
             elif board.is_stalemate():
                 screen.blit(pg.image.load(rf"pic/stalemate.png"), (0, 0))
                 pg.display.update()
-                time.sleep(1)
+                sleep(1)
                 running = False
 
             if event.type == pg.QUIT:
@@ -904,7 +784,7 @@ def main():
                         except:
                             screen.blit(pg.image.load(r"pic\wrong_move.png"),(0,0))
                             pg.display.update()
-                            time.sleep(1)
+                            sleep(1)
                             draw_board(screen)
                             draw_pieces(board,screen)
                             start_square = end_square = None
@@ -932,6 +812,5 @@ def main():
 
     pg.quit()
 
-    
 if __name__ == "__main__":
     main()
