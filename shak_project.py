@@ -882,6 +882,14 @@ def main():
                 if counter % 2 == 0:
                     x_s, y_s = pg.mouse.get_pos()
                     piece = board.piece_at(chess.square(x_s // 80, 7 - (y_s // 80)))
+                    print(piece)
+                    for move in board.legal_moves:
+                        if move.from_square == chess.square(x_s // 80, 7 - (y_s // 80)):
+                            if board.piece_at(move.to_square):
+                                pg.draw.rect(screen, (255, 0, 0), ((move.to_square % 8 * 80, (7 - move.to_square // 8) * 80), (80, 80)),5)
+                            else:
+                                pg.draw.rect(screen, (0, 0, 255), ((move.to_square % 8 * 80, (7 - move.to_square // 8) * 80), (80, 80)),5)
+                    pg.display.update()
                     if piece and piece.color == board.turn:
                         counter = counter + 1
                     else:
@@ -896,6 +904,13 @@ def main():
                         try:
                             move = board.find_move(start_square, end_square)
                         except:
+                            screen.blit(pg.image.load(r"pic\wrong_move.png"),(0,0))
+                            pg.display.update()
+                            time.sleep(1)
+                            draw_board(screen)
+                            draw_pieces(board,screen)
+                            start_square = end_square = None
+                            
                             continue
 
                         if s_piece and move in board.legal_moves and s_piece.piece_type == chess.PAWN and (end_square // 8 == 0 or end_square // 8 == 7):
