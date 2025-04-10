@@ -180,24 +180,19 @@ def evaluate_forks(board):
         chess.QUEEN: 9,
         chess.KING: 0  
     }
-
     fork_score = 0
-
     for square in chess.SQUARES:
         piece = board.piece_at(square)
         if piece and piece.color == chess.BLACK:  
             attacked_squares = board.attacks(square)
             targeted_pieces = []
-
             for attacked_square in attacked_squares:
                 target = board.piece_at(attacked_square)
                 if target and target.color == chess.WHITE:  
                     targeted_pieces.append(target)
-
             if len(targeted_pieces) >= 2:  
                 fork_value = sum(piece_values[target.piece_type] for target in targeted_pieces)
                 fork_score += fork_value
-
     return fork_score
 
 def square_target_with_piece_values(board, square, weight=2):
@@ -209,10 +204,8 @@ def square_target_with_piece_values(board, square, weight=2):
         chess.QUEEN: 9,
         chess.KING: 0
     }
-    
     allied_target_score = 0
     enemy_target_score = 0
-
     for sq in chess.SQUARES:
         piece = board.piece_at(sq)
         if piece:
@@ -223,7 +216,6 @@ def square_target_with_piece_values(board, square, weight=2):
                     allied_target_score += piece_value
                 else: 
                     enemy_target_score += piece_value
-
     score = (allied_target_score - enemy_target_score) * weight
     return score
 
@@ -236,7 +228,6 @@ def piece_values_checker(board):
         chess.QUEEN: 9,
         chess.KING: 0 
     }
-
     score = 0
     for square in chess.SQUARES:
         piece = board.piece_at(square)
@@ -434,7 +425,6 @@ def determine_game_phase(board):
 def evaluate_board(board):
     score = 0
     phase = determine_game_phase(board)
-
     if phase == 'opening':
         score += 1.5 * piece_values_checker(board)
         score += 1.0 * piece_safety(board)
@@ -452,23 +442,9 @@ def evaluate_board(board):
         score += 1.2 * evaluate_passed_pawns(board)
     return score
 
-def piece_value(piece):
-    if piece.piece_type == chess.PAWN:
-        return 1
-    elif piece.piece_type == chess.KNIGHT or piece.piece_type == chess.BISHOP:
-        return 3
-    elif piece.piece_type == chess.ROOK:
-        return 5
-    elif piece.piece_type == chess.QUEEN:
-        return 9
-    elif piece.piece_type == chess.KING:
-        return 1000
-    return 0
-
 def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=20):
     if depth == 0 or board.is_game_over() or (time() - start_time > max_time):
         return evaluate_board(board)
-
     if maximizing_player:
         max_eval = float('-inf')
         for move in board.legal_moves:
@@ -521,11 +497,9 @@ def play_best_ai_move(board, screen):
                     pg.display.update()
                     pg.mixer.music.play()
                     sleep(2)
-                    
         pg.display.set_caption('Checkmate!')
         clip = VideoFileClip(r'voc/checkmate.mp4')
         clip.preview()
-
         pg.quit()
         screen = pg.display.set_mode((640, 640))
         pg.display.set_caption('Game Over!')
@@ -543,7 +517,6 @@ def play_best_ai_move(board, screen):
         yes_button = tk.Button(root, text='Yes', font=("Comic Sans MS", 18), command=play_again(root))
         yes_button.place(x=300, y=50)
         root.mainloop()
-        
         running = False
         return
     elif board.is_check() and not c_m_f:
@@ -584,14 +557,12 @@ def main():
     pg.display.update()
     pg.mixer.music.play()
     sleep(2)
-
     board = chess.Board()
     running = True
     counter = 0
     c_m_f = False
     draw_board(screen)
     draw_pieces(board, screen)
-
     while running:
         for event in pg.event.get():
             if board.is_checkmate():
@@ -608,14 +579,12 @@ def main():
                 pg.display.set_caption('Checkmate!')
                 clip = VideoFileClip('checkmate.mp4')
                 clip.preview()
-
                 pg.quit()
                 screen = pg.display.set_mode((640, 640))
                 pg.display.set_caption('Game Over!')
                 screen.blit(pg.image.load(rf"pic/{color}_lost.png"), (0, 0))
                 pg.display.update()
                 sleep(1)
-
                 root = tk.Tk()
                 root.title('Play again?')
                 root.eval('tk::PlaceWindow . center')
@@ -627,9 +596,7 @@ def main():
                 yes_button = tk.Button(root, text='Yes', font=("Comic Sans MS", 18), command=lambda: play_again(root))
                 yes_button.place(x=300, y=50)
                 root.mainloop()
-
                 running = False
-
             elif board.is_check() and not c_m_f:
                 draw_board(screen)
                 draw_pieces(board, screen)
@@ -644,16 +611,13 @@ def main():
                 draw_board(screen)
                 draw_pieces(board, screen)
                 c_m_f = True
-
             elif board.is_stalemate():
                 screen.blit(pg.image.load(rf"pic/stalemate.png"), (0, 0))
                 pg.display.update()
                 sleep(1)
                 running = False
-
             if event.type == pg.QUIT:
                 running = False
-
             elif event.type == pg.MOUSEBUTTONDOWN:
                 if counter % 2 == 0:
                     x_s, y_s = pg.mouse.get_pos()
@@ -685,9 +649,7 @@ def main():
                             draw_board(screen)
                             draw_pieces(board,screen)
                             start_square = end_square = None
-                            
                             continue
-
                         if s_piece and move in board.legal_moves and s_piece.piece_type == chess.PAWN and (end_square // 8 == 0 or end_square // 8 == 7):
                             promote_pawn(start_square, end_square, board, screen)
                             c_m_f = False
@@ -704,9 +666,7 @@ def main():
                             draw_board(screen)
                             draw_pieces(board, screen)
                             play_best_ai_move(board, screen)
-
         pg.display.flip()
-
     pg.quit()
 
 if __name__ == "__main__":
