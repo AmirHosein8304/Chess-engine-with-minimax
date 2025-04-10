@@ -498,6 +498,7 @@ def find_best_move(board, depth = 16):
     best_score = float('-inf')
     legal_moves = list(board.legal_moves)
     for move in legal_moves:
+        print(move)
         board.push(move)
         move_score = minimax(board, depth - 1, float('-inf'), float('inf'), False,start_time)
         board.pop()
@@ -567,43 +568,6 @@ def play_best_ai_move(board, screen):
         else:
             pg.mixer.music.load(r"voc/گذاشتن مهره.mp3")
         pg.mixer.music.play()
-
-def value(board, is_maximizing):
-    result = board.result()
-    if result == "1-0":
-        return evaluate_board(board)
-    elif result == "0-1":
-        return evaluate_board(board)
-    elif result == "1/2-1/2":
-        return 0
-
-    if is_maximizing:
-        return max_value(board)
-    return min_value(board)
-
-def max_value(board):
-    if board.is_game_over():
-        return evaluate_board(board)
-    
-    max_eval = float('-inf')
-    for move in board.legal_moves:
-        board.push(move)
-        eval = min_value(board)
-        board.pop()
-        max_eval = max(max_eval, eval)
-    return max_eval
-
-def min_value(board):
-    if board.is_game_over():
-        return evaluate_board(board)
-    
-    min_eval = float('inf')
-    for move in board.legal_moves:
-        board.push(move)
-        eval = max_value(board)
-        board.pop()
-        min_eval = min(min_eval, eval)
-    return min_eval
 
 def play_again(root):
     def inner():
