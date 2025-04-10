@@ -1,7 +1,7 @@
 import chess
 import pygame as pg
 import time
-import moviepy
+import moviepy.editor
 import tkinter as tk
 
 def draw_board(screen):
@@ -19,10 +19,10 @@ def draw_pieces(board,screen):
             piece = board.piece_at(chess.square(i, 7 - j))
             if piece:
                 if piece.color == chess.WHITE:
-                    piece_image = pg.image.load(rf"Chess-engine-with-minimax/pic/{'w'+piece.symbol()}.png")
+                    piece_image = pg.image.load(rf"pic/{'w'+piece.symbol()}.png")
                     screen.blit(piece_image, (i * 80, j * 80))
                 else:
-                    piece_image = pg.image.load(rf"Chess-engine-with-minimax/pic/{'b'+piece.symbol()}.png")
+                    piece_image = pg.image.load(rf"pic/{'b'+piece.symbol()}.png")
                     screen.blit(piece_image, (i * 80, j * 80))
     pg.display.update()
 
@@ -693,29 +693,28 @@ def find_best_move(board, depth = 16):
 
 def play_best_ai_move(board, screen):
     """Play the best AI move."""
-    c_m_f = False
     global running
-    
+    c_m_f = False
     if board.is_checkmate():
         color = 'black' if board.turn == chess.BLACK else 'white'
         for i in range(8):
             for j in range(8):
                 piece = board.piece_at(chess.square(i, 7 - j))
                 if piece and piece.piece_type == chess.KING and piece.color == board.turn:
-                    screen.blit(pg.image.load(r"Chess-engine-with-minimax/pic/check_block.png"), (i * 80, j * 80))
-                    pg.mixer.music.load(r"Chess-engine-with-minimax/voc/مات.mp3")
+                    screen.blit(pg.image.load(r"pic/check_block.png"), (i * 80, j * 80))
+                    pg.mixer.music.load(r"voc/مات.mp3")
                     pg.display.update()
                     pg.mixer.music.play()
                     time.sleep(2)
-
+                    
         pg.display.set_caption('Checkmate!')
-        clip = moviepy.editor.VideoFileClip(r'Chess-engine-with-minimax/voc/checkmate.mp4')
+        clip = moviepy.editor.VideoFileClip(r'voc/checkmate.mp4')
         clip.preview()
 
         pg.quit()
         screen = pg.display.set_mode((640, 640))
         pg.display.set_caption('Game Over!')
-        screen.blit(pg.image.load(rf"Chess-engine-with-minimax/pic/{color}_lost.png"), (0, 0))
+        screen.blit(pg.image.load(rf"pic/{color}_lost.png"), (0, 0))
         pg.display.update()
         time.sleep(1)
         root = tk.Tk()
@@ -732,7 +731,16 @@ def play_best_ai_move(board, screen):
         
         running = False
         return
-    
+    elif board.is_check() and not c_m_f:
+        color = 'black' if board.turn == chess.BLACK else 'white'
+        screen.blit(pg.image.load(rf"pic/{color}_king_is_in_check.png"), (0, 0))
+        pg.mixer.music.load(r"voc/کیش.mp3")
+        pg.display.update()
+        pg.mixer.music.play()
+        time.sleep(2)
+        draw_board(screen)
+        draw_pieces(board, screen)
+        c_m_f = True
     best_move = find_best_move(board)
     if best_move:
         r_piece = board.piece_at(best_move.to_square)
@@ -741,9 +749,9 @@ def play_best_ai_move(board, screen):
         draw_board(screen)
         draw_pieces(board, screen)
         if r_piece:
-            pg.mixer.music.load(r"Chess-engine-with-minimax/voc/حذف مهره.mp3")
+            pg.mixer.music.load(r"voc/حذف مهره.mp3")
         else:
-            pg.mixer.music.load(r"Chess-engine-with-minimax/voc/گذاشتن مهره.mp3")
+            pg.mixer.music.load(r"voc/گذاشتن مهره.mp3")
         pg.mixer.music.play()
 
 def value(board, is_maximizing):
@@ -794,8 +802,8 @@ def main():
     pg.init()
     screen = pg.display.set_mode((640, 640))
     pg.display.set_caption("Chess")
-    pg.mixer.music.load(r"Chess-engine-with-minimax/voc/war_horn_3.mp3")
-    screen.blit(pg.image.load(r"Chess-engine-with-minimax/pic/welcome_page.png"), (0, 0))
+    pg.mixer.music.load(r"voc/war_horn_3.mp3")
+    screen.blit(pg.image.load(r"pic/welcome_page.png"), (0, 0))
     pg.display.update()
     pg.mixer.music.play()
     time.sleep(2)
@@ -815,8 +823,8 @@ def main():
                     for j in range(8):
                         piece = board.piece_at(chess.square(i, 7 - j))
                         if piece and piece.piece_type == chess.KING and piece.color == board.turn:
-                            screen.blit(pg.image.load(r"Chess-engine-with-minimax/pic/check_block.png"), (i * 80, j * 80))
-                            pg.mixer.music.load(r"Chess-engine-with-minimax/voc/مات.mp3")
+                            screen.blit(pg.image.load(r"pic/check_block.png"), (i * 80, j * 80))
+                            pg.mixer.music.load(r"voc/مات.mp3")
                             pg.display.update()
                             pg.mixer.music.play()
                             time.sleep(2)
@@ -827,7 +835,7 @@ def main():
                 pg.quit()
                 screen = pg.display.set_mode((640, 640))
                 pg.display.set_caption('Game Over!')
-                screen.blit(pg.image.load(rf"Chess-engine-with-minimax/pic/{color}_lost.png"), (0, 0))
+                screen.blit(pg.image.load(rf"pic/{color}_lost.png"), (0, 0))
                 pg.display.update()
                 time.sleep(1)
 
@@ -851,8 +859,9 @@ def main():
                 pg.display.update()
                 time.sleep(1.5)
                 color = 'black' if board.turn == chess.BLACK else 'white'
-                screen.blit(pg.image.load(rf"Chess-engine-with-minimax/pic/{color}_king_is_in_check.png"), (0, 0))
-                pg.mixer.music.load(r"Chess-engine-with-minimax/voc/کیش.mp3")
+                print('hi')
+                screen.blit(pg.image.load(rf"pic/{color}_king_is_in_check.png"), (0, 0))
+                pg.mixer.music.load(r"voc/کیش.mp3")
                 pg.display.update()
                 pg.mixer.music.play()
                 time.sleep(2)
@@ -861,7 +870,7 @@ def main():
                 c_m_f = True
 
             elif board.is_stalemate():
-                screen.blit(pg.image.load(rf"Chess-engine-with-minimax/pic/stalemate.png"), (0, 0))
+                screen.blit(pg.image.load(rf"pic/stalemate.png"), (0, 0))
                 pg.display.update()
                 time.sleep(1)
                 running = False
@@ -896,10 +905,10 @@ def main():
                             r_piece = board.piece_at(end_square)
                             board.push(move)
                             if r_piece:
-                                pg.mixer.music.load(r"Chess-engine-with-minimax/voc/حذف مهره.mp3")
+                                pg.mixer.music.load(r"voc/حذف مهره.mp3")
                                 pg.mixer.music.play()
                             else:
-                                pg.mixer.music.load(r"Chess-engine-with-minimax/voc/گذاشتن مهره.mp3")
+                                pg.mixer.music.load(r"voc/گذاشتن مهره.mp3")
                                 pg.mixer.music.play()
                             c_m_f = False
                             draw_board(screen)

@@ -572,9 +572,12 @@ def evaluate_move(move, board):
     return score
 
 def find_best_move(board):
+    start_time = time()
     best_move = None
     best_score = -inf
     for move in board.legal_moves:
+        if time()-start_time>=100:
+            break
         board.push(move)
         move_score = value(board, False, -inf, inf)
         board.pop()
@@ -643,15 +646,15 @@ def value(board, is_maximizing, alpha, beta, depth = 0, start_time = None):
     elif result == "1/2-1/2":
         return 0
 
-    if is_maximizing and depth!=6:
+    if is_maximizing and depth!=16:
         return max_value(board, alpha, beta, depth, start_time)
-    elif not is_maximizing and depth!=6:
+    elif not is_maximizing and depth!=16:
         return min_value(board, alpha, beta, depth, start_time)
-    elif depth==6 or time()-start_time>=20:
+    elif depth==16:
         return evaluate_board(board)
 
 def max_value(board, alpha, beta, depth, start_time):
-    if board.is_game_over() or depth==6 or time()-start_time>=20:
+    if board.is_game_over() or depth==16 or time()-start_time>=100:
         return evaluate_board(board)
     
     v = -inf
@@ -665,7 +668,7 @@ def max_value(board, alpha, beta, depth, start_time):
     return v
 
 def min_value(board, alpha, beta, depth, start_time):
-    if board.is_game_over() or depth==6 or time()-start_time>=20:
+    if board.is_game_over() or depth==16 or time()-start_time>=100:
         return evaluate_board(board)
     
     v = inf
