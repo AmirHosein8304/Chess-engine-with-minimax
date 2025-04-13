@@ -4,6 +4,7 @@ from time import time, sleep
 from moviepy.editor import VideoFileClip
 import tkinter as tk
 
+#Chess funcs
 def draw_board(screen):
     for i in range(8):
         for j in range(8):
@@ -86,6 +87,7 @@ def promote_pawn(st_sq,en_sq,board,screen):
     bishop_button.place(x=10, y=275)
     message_root.mainloop()
 
+#Heuristics
 def piece_position_value(board):
     piece_pos_val = {
         chess.PAWN:
@@ -164,61 +166,6 @@ def piece_position_value(board):
                 s_val -= piece_pos_val[piece.piece_type][7 - chess.square_rank(square)][chess.square_file(square)]
     return s_val
 
-def evaluate_black_targeted_squares(board):
-    black_targeted = set()
-    for move in board.legal_moves:
-        if not board.piece_at(move.from_square) or board.piece_at(move.from_square).color == chess.BLACK:
-            black_targeted.add(move.to_square)
-    return len(black_targeted)
-
-def evaluate_forks(board):
-    piece_values = {
-        chess.PAWN: 1,
-        chess.KNIGHT: 3,
-        chess.BISHOP: 3.5,
-        chess.ROOK: 5,
-        chess.QUEEN: 9,
-        chess.KING: 0  
-    }
-    fork_score = 0
-    for square in chess.SQUARES:
-        piece = board.piece_at(square)
-        if piece and piece.color == chess.BLACK:  
-            attacked_squares = board.attacks(square)
-            targeted_pieces = []
-            for attacked_square in attacked_squares:
-                target = board.piece_at(attacked_square)
-                if target and target.color == chess.WHITE:  
-                    targeted_pieces.append(target)
-            if len(targeted_pieces) >= 2:  
-                fork_value = sum(piece_values[target.piece_type] for target in targeted_pieces)
-                fork_score += fork_value
-    return fork_score
-
-def square_target_with_piece_values(board, square, weight=2):
-    piece_values = {
-        chess.PAWN: 1,
-        chess.KNIGHT: 3,
-        chess.BISHOP: 3,
-        chess.ROOK: 5,
-        chess.QUEEN: 9,
-        chess.KING: 0
-    }
-    allied_target_score = 0
-    enemy_target_score = 0
-    for sq in chess.SQUARES:
-        piece = board.piece_at(sq)
-        if piece:
-            legal_moves = board.attacks(sq)
-            if square in legal_moves:
-                piece_value = piece_values[piece.piece_type]
-                if piece.color == board.turn:
-                    allied_target_score += piece_value
-                else: 
-                    enemy_target_score += piece_value
-    score = (allied_target_score - enemy_target_score) * weight
-    return score
-
 def piece_values_checker(board):
     piece_values = {
         chess.PAWN: 1,
@@ -266,71 +213,6 @@ def evaluate_king_safety(board):
             if piece and piece.color != board.turn:
                 king_safety_score -= 1
     return king_safety_score
-
-def evaluate_pawn_structure(board):
-    W_connected = 10
-    W_isolated = -15
-    W_doubled = -20
-    W_advanced = 5
-    W_backward = -10
-    W_hanging = -5
-    score = 0
-    for color in [chess.WHITE, chess.BLACK]:
-        pawn_files = {}
-        isolated_pawns = 0
-        doubled_pawns = 0
-        connected_pawns = 0
-        advanced_pawns = 0
-        backward_pawns = 0
-        hanging_pawns = 0
-        for square in chess.SQUARES:
-            piece = board.piece_at(square)
-            if piece and piece.piece_type == chess.PAWN and piece.color == color:
-                file_index = chess.square_file(square)
-                rank_index = chess.square_rank(square)
-                if file_index in pawn_files:
-                    pawn_files[file_index].append(rank_index)
-                else:
-                    pawn_files[file_index] = [rank_index]
-                if (color == chess.WHITE and rank_index >= 4) or (color == chess.BLACK and rank_index <= 3):
-                    advanced_pawns += 1
-        for file_index, ranks in pawn_files.items():
-            ranks.sort()
-            if len(ranks) > 1:
-                doubled_pawns += (len(ranks) - 1)
-            if (file_index - 1 not in pawn_files) and (file_index + 1 not in pawn_files):
-                isolated_pawns += len(ranks)
-            if (file_index - 1 in pawn_files or file_index + 1 in pawn_files):
-                connected_pawns += len(ranks)
-            if color == chess.WHITE:
-                for rank in ranks:
-                    if rank < 5:
-                        backward_pawns += 1
-            else:
-                for rank in ranks:
-                    if rank > 3:
-                        backward_pawns += 1
-            if color == chess.WHITE:
-                for rank in ranks:
-                    if not board.piece_at(chess.square(file_index - 1, rank)) and not board.piece_at(chess.square(file_index + 1, rank)):
-                        hanging_pawns += 1
-            else:
-                for rank in ranks:
-                    if not board.piece_at(chess.square(file_index - 1, rank)) and not board.piece_at(chess.square(file_index + 1, rank)):
-                        hanging_pawns += 1
-        pawn_structure_score = (
-            (connected_pawns * W_connected) -
-            (isolated_pawns * W_isolated) -
-            (doubled_pawns * W_doubled) +
-            (advanced_pawns * W_advanced) -
-            (backward_pawns * W_backward) -
-            (hanging_pawns * W_hanging)
-        )
-        if color == chess.WHITE:
-            score += pawn_structure_score
-        else:
-            score -= pawn_structure_score
-    return score
 
 def piece_safety(board):
     safety_score = 0
@@ -389,13 +271,6 @@ def piece_safety(board):
                     safety_score += value * 1.1
     return safety_score
 
-def evaluate_piece_mobility(board):
-    mobility_score = 0
-    for piece in board.piece_map().values():
-        if piece.color == board.turn:
-            mobility_score += len(list(board.legal_moves))
-    return mobility_score
-
 def evaluate_passed_pawns(board):
     passed_pawn_score = 0
     for square in board.pieces(chess.PAWN, board.turn):
@@ -409,6 +284,7 @@ def evaluate_passed_pawns(board):
                 passed_pawn_score += 1
     return passed_pawn_score
 
+#Using Heuristics
 def determine_game_phase(board):
     piece_count = len(board.pieces(chess.PAWN, chess.WHITE)) + len(board.pieces(chess.PAWN, chess.BLACK)) \
                 + len(board.pieces(chess.KNIGHT, chess.WHITE)) + len(board.pieces(chess.KNIGHT, chess.BLACK)) \
@@ -442,6 +318,7 @@ def evaluate_board(board):
         score += 1.2 * evaluate_passed_pawns(board)
     return score
 
+#MiniMax
 def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=20):
     if depth == 0 or board.is_game_over() or (time() - start_time > max_time):
         return evaluate_board(board)
@@ -542,6 +419,7 @@ def play_best_ai_move(board, screen):
             pg.mixer.music.load(r"voc/گذاشتن مهره.mp3")
         pg.mixer.music.play()
 
+#Game Loop
 def play_again(root):
     def inner():
         root.destroy()
