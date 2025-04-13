@@ -423,23 +423,55 @@ def determine_game_phase(board):
         return "endgame"
 
 def evaluate_board(board):
-    score = 0
+    """Generalized board evaluation function with phase-dependent weights."""
+    # Define evaluation components and their weights for each phase
+    phase_weights = {
+        'opening': {
+            'piece_value': 1.5,
+            'piece_safety': 1.0,
+            'position_value': 0.8,
+            'center_control': 1.0,
+            'king_safety': 0.0,
+            'passed_pawns': 0.0
+        },
+        'midgame': {
+            'piece_value': 1.2,
+            'piece_safety': 1.0,
+            'position_value': 1.0,
+            'center_control': 0.7,
+            'king_safety': 0.5,
+            'passed_pawns': 0.3
+        },
+        'endgame': {
+            'piece_value': 1.0,
+            'piece_safety': 0.8,
+            'position_value': 0.6,
+            'center_control': 0.2,
+            'king_safety': 0.6,
+            'passed_pawns': 1.2
+        }
+    }
+    
     phase = determine_game_phase(board)
-    if phase == 'opening':
-        score += 1.5 * piece_values_checker(board)
-        score += 1.0 * piece_safety(board)
-        score += 0.8 * piece_position_value(board)
-        score += 1.0 * center_control(board)
-    elif phase == 'midgame':
-        score += 1.2 * piece_values_checker(board)
-        score += 1.0 * piece_safety(board)
-        score += 1.0 * piece_position_value(board)
-        score += 0.7 * center_control(board)
-    else:
-        score += 1.0 * piece_values_checker(board)
-        score += 0.8 * piece_safety(board)
-        score += 0.6 * evaluate_king_safety(board)
-        score += 1.2 * evaluate_passed_pawns(board)
+    weights = phase_weights.get(phase, phase_weights['midgame'])  # Default to midgame
+    
+    # Evaluation components mapping to their functions
+    evaluators = {
+        'piece_value': piece_values_checker,
+        'piece_safety': piece_safety,
+        'position_value': piece_position_value,
+        'center_control': center_control,
+        'king_safety': evaluate_king_safety,
+        'passed_pawns': evaluate_passed_pawns
+    }
+    
+    # Calculate weighted score
+    score = 0
+    for component, weight in weights.items():
+        if weight > 0:  # Only evaluate if weight is positive
+            evaluator = evaluators[component]
+            score += weight * evaluator(board)
+    
     return score
 
 def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=20):
