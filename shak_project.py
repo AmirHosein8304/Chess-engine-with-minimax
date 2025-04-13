@@ -4,7 +4,7 @@ from time import time, sleep
 from moviepy.editor import VideoFileClip
 import tkinter as tk
 
-#Chess funcs
+#Chess Functions
 def draw_board(screen):
     for i in range(8):
         for j in range(8):
@@ -299,8 +299,6 @@ def determine_game_phase(board):
         return "endgame"
 
 def evaluate_board(board):
-    """Generalized board evaluation function with phase-dependent weights."""
-    # Define evaluation components and their weights for each phase
     phase_weights = {
         'opening': {
             'piece_value': 1.5,
@@ -325,13 +323,9 @@ def evaluate_board(board):
             'center_control': 0.2,
             'king_safety': 0.6,
             'passed_pawns': 1.2
-        }
-    }
-    
+        }}
     phase = determine_game_phase(board)
     weights = phase_weights.get(phase, phase_weights['midgame'])  # Default to midgame
-    
-    # Evaluation components mapping to their functions
     evaluators = {
         'piece_value': piece_values_checker,
         'piece_safety': piece_safety,
@@ -339,15 +333,12 @@ def evaluate_board(board):
         'center_control': center_control,
         'king_safety': evaluate_king_safety,
         'passed_pawns': evaluate_passed_pawns
-    }
-    
-    # Calculate weighted score
+        }
     score = 0
     for component, weight in weights.items():
-        if weight > 0:  # Only evaluate if weight is positive
+        if weight > 0:
             evaluator = evaluators[component]
             score += weight * evaluator(board)
-    
     return score
 
 #MiniMax
@@ -377,6 +368,7 @@ def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=2
                 break
         return min_eval
 
+#AI Agent
 def find_best_move(board, depth = 16):
     start_time = time()
     best_move = None
