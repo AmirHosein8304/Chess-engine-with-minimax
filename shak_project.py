@@ -342,7 +342,7 @@ def evaluate_board(board):
     return score
 
 #MiniMax
-def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=20):
+def minimax(board, depth, alpha, beta, maximizing_player, start_time, max_time=100):
     if depth == 0 or board.is_game_over() or (time() - start_time > max_time):
         return evaluate_board(board)
     if maximizing_player:
@@ -375,7 +375,6 @@ def find_best_move(board, depth = 16):
     best_score = float('-inf')
     legal_moves = list(board.legal_moves)
     for move in legal_moves:
-        print(move)
         board.push(move)
         move_score = minimax(board, depth - 1, float('-inf'), float('inf'), False,start_time)
         board.pop()
