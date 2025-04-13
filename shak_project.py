@@ -1,3 +1,4 @@
+#امیرحسین توکلی 40216123
 import chess
 import pygame as pg
 from time import time, sleep
