@@ -1,5 +1,6 @@
 #امیرحسین توکلی 40216123
 #محمدرضا طاهری 40219213
+#40218593 امیرحسین شاکری
 import chess
 import pygame as pg
 from time import time, sleep
